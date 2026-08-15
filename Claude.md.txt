@@ -1,0 +1,245 @@
+CLAUDE.md
+Svach AI HQ
+
+Project Overview
+
+Svach AI HQ is the internal operating system for Svach AI.
+
+It is being designed as an AI-first enterprise platform that manages every aspect of the agency, including operations, clients, projects, AI agents, CRM, finance, marketing, documents, analytics, knowledge management, and future client portals.
+
+This is a long-term product intended to scale into a complete AI Operating System.
+
+Current Status
+
+Project Phase: Phase 0 – Product Planning & Architecture
+
+Current Focus:
+
+Product planning
+Information architecture
+Design system
+Database planning
+User experience
+AI architecture
+Documentation
+
+Production development has not started.
+
+Product Mission
+
+Build one unified platform that allows Svach AI to operate entirely from a single intelligent workspace.
+
+The platform should eliminate fragmented tools by integrating AI, automation, business operations, and knowledge management into one ecosystem.
+
+Primary Users
+
+Internal Svach AI Team
+
+Future Expansion:
+
+Employees
+Contractors
+Clients
+Healthcare Clinics
+Client Portals
+Product Philosophy
+
+Svach AI HQ is NOT:
+
+A CRM
+A project management tool
+A generic dashboard
+A collection of disconnected tools
+
+Svach AI HQ IS:
+
+An AI-first business operating system designed specifically for Svach AI.
+
+Every feature should strengthen the ecosystem rather than exist in isolation.
+
+Naming convention: the CRM department is branded "Nexus" in all user-facing text.
+Code, schema, and table names stay generic (clients, follow_ups, etc.) — never
+renamed to match the brand. See /docs/DECISION_LOG.md §3.
+
+Design Authority
+
+The official Svach AI website (https://svach.in) is the primary design reference.
+
+Every future screen, component, module, and interaction should align with the visual language established on the website.
+
+Maintain consistency in:
+
+Branding
+Colors
+Typography
+Glassmorphism
+Motion
+Hover effects
+User experience
+Visual hierarchy
+
+HQ should feel like the operational extension of the website.
+
+Design Principles
+
+The interface should feel:
+
+Premium
+Enterprise
+Modern
+AI-first
+Minimal
+Professional
+Calm
+Trustworthy
+
+Avoid:
+
+Generic admin templates
+Gaming aesthetics
+Cyberpunk themes
+Excessive visual clutter
+Development Principles
+
+Always follow this order:
+
+Understand the business problem.
+Design the solution.
+Validate the architecture.
+Document the decision.
+Implement.
+Test.
+Review.
+Deploy.
+
+Never skip planning.
+
+Technical Direction
+
+Frontend
+
+Vite + React 19 (SPA, no SSR) — Next.js is explicitly not used.
+TypeScript
+React Router
+
+Styling
+
+Tailwind CSS
+shadcn/ui
+
+Animations
+
+Framer Motion
+
+Backend
+
+Supabase
+
+Authentication
+
+Supabase Auth
+
+Database
+
+PostgreSQL (Supabase)
+
+Derived/computed fields (e.g. contact recency, health flags) are never stored —
+always computed live from source-of-truth tables, per DATABASE_SCHEMA.md's
+client_contact_status pattern. Data-integrity business rules (e.g. a required reason
+on a lost deal, a required contact method on a new lead) are enforced with database
+CHECK constraints, not just UI validation. See DECISION_LOG.md §12-13.
+
+Storage
+
+Supabase Storage
+
+Icons
+
+Lucide Icons
+
+Charts
+
+Recharts
+
+Deployment
+
+Netlify (initially)
+
+Automation
+
+n8n — Stage 1 is confirmed live: n8n Cloud at svach001.app.n8n.cloud. Do not
+introduce a VPS, Docker, or Caddy — that's a future infrastructure stage, not
+current scope. See /docs/DECISION_LOG.md §11 and /docs/ROADMAP.md.
+AI Philosophy
+
+AI should assist the user, not replace decision-making.
+
+The platform will eventually include:
+
+Operations Orchestration Agent (OOA)
+Sales Agent
+Marketing Agent
+CRM Agent
+Finance Agent
+Knowledge Agent
+Support Agent
+
+OOA will coordinate all specialist agents.
+
+OOA is the only proactive orchestrating agent. It is developed/deployed separately on
+Hermes, a dedicated external runtime — not part of the Svach AI HQ codebase. Claude
+Code builds Svach AI HQ as the control plane (dashboard, approvals, audit trail, and
+the API boundary to Hermes) and does not implement OOA's reasoning engine inside HQ.
+All other specialist agents (Sales, CRM/Nexus, Delivery, Finance, Marketing, Support)
+are reactive — they act only when delegated to, explicitly requested, or triggered by
+an event or workflow, never running their own proactive monitoring loop. See
+/docs/DECISION_LOG.md §10 and /docs/AI_ARCHITECTURE.md for the full architecture.
+
+Security
+
+RLS is enabled on every table from day one, no exceptions — including lookup tables
+and tables unused in V1. External services (Hermes, future integrations) always
+authenticate with a purpose-built credential scoped to one capability — never a
+general Supabase service-role key. See /docs/SECURITY_STANDARDS.md and
+/docs/SECURITY_POLICY.md.
+
+Documentation
+
+The project documentation is stored inside the /docs directory.
+
+Documents include:
+
+PRODUCT_VISION.md
+ROADMAP.md
+INFORMATION_ARCHITECTURE.md
+DATABASE_SCHEMA.md
+DESIGN_SYSTEM.md
+UI_UX_GUIDELINES.md
+COMPONENT_LIBRARY.md
+AI_ARCHITECTURE.md
+SECURITY_STANDARDS.md
+SECURITY_POLICY.md
+PRD.md
+DECISION_LOG.md
+
+These documents should always remain synchronized with the implementation.
+
+Ground Rules
+Think long-term.
+Build systems, not features.
+Keep modules loosely coupled.
+Reuse components whenever possible.
+Avoid technical debt.
+Prioritize maintainability.
+Prioritize performance.
+Prioritize accessibility.
+Keep the user experience consistent.
+Long-Term Vision
+
+The website is the public face of Svach AI.
+
+Svach AI HQ is the operational brain.
+
+The long-term goal is to create a scalable enterprise AI Operating System that manages every aspect of Svach AI from one intelligent platform.
+
+Every architectural decision should support that vision.

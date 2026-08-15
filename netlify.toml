@@ -1,0 +1,11 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# SPA fallback — react-router-dom's client-side routing means a deep link like
+# /sales/:id has no matching file on the static host. Without this, refreshing
+# on any route other than "/" 404s.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
