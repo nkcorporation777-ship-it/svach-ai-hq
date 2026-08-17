@@ -1,4 +1,6 @@
-# React + TypeScript + Vite
+# Svach AI HQ
+
+Internal operating system for Svach AI — built with React + TypeScript + Vite.
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
