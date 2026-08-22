@@ -5,7 +5,24 @@ import { Card } from "@/components/shared/Card"
 import { ActivityTimeline } from "@/components/shared/ActivityTimeline"
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog"
 import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { supabase } from "@/lib/supabase/client"
+import { getFunctionErrorMessage } from "@/lib/functionsError"
 import { useLead, useDeleteLead } from "./hooks"
+
+/** AI_ARCHITECTURE.md's "AI-Assist Architecture" — task_types valid for a lead. */
+const AI_TASKS = [
+  { value: "draft_outreach_email", label: "Draft outreach email" },
+  { value: "summarize_call", label: "Summarize latest call" },
+  { value: "suggest_next_action", label: "Suggest next action" },
+]
 
 /** INFORMATION_ARCHITECTURE.md §4.3. */
 export function LeadDetailPage() {
@@ -15,10 +32,34 @@ export function LeadDetailPage() {
   const deleteLead = useDeleteLead()
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
 
+  const [aiTaskType, setAiTaskType] = useState(AI_TASKS[0].value)
+  const [aiResult, setAiResult] = useState<string | null>(null)
+  const [aiError, setAiError] = useState<string | null>(null)
+  const [aiLoading, setAiLoading] = useState(false)
+
   if (isLoading) return <p className="text-sm text-muted-foreground">Loading…</p>
   if (!lead) return <p className="text-sm text-muted-foreground">Lead not found.</p>
 
   const specialtyName = (lead as { specialties?: { name: string } | null }).specialties?.name
+
+  async function handleGenerate() {
+    setAiLoading(true)
+    setAiError(null)
+    setAiResult(null)
+    const { data, error } = await supabase.functions.invoke("ai-assist", {
+      body: { task_type: aiTaskType, entity_type: "lead", entity_id: lead!.id },
+    })
+    setAiLoading(false)
+    if (error) {
+      setAiError(await getFunctionErrorMessage(error, "Draft failed, try again."))
+      return
+    }
+    if (data?.error) {
+      setAiError(data.error)
+      return
+    }
+    setAiResult(data?.text ?? "")
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -112,10 +153,45 @@ export function LeadDetailPage() {
               <Sparkles className="size-4 text-brand-cyan" />
               <h2 className="font-display text-base font-semibold">AI Assist</h2>
             </div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Coming once an AI provider is connected (AI_ARCHITECTURE.md — no
-              provider chosen yet).
-            </p>
+            <div className="mt-4 flex flex-col gap-3">
+              <Select
+                value={aiTaskType}
+                onValueChange={(v) => {
+                  setAiTaskType(v)
+                  setAiResult(null)
+                  setAiError(null)
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue>
+                    {AI_TASKS.find((t) => t.value === aiTaskType)?.label}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {AI_TASKS.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button size="sm" onClick={handleGenerate} disabled={aiLoading}>
+                {aiLoading ? "Generating…" : "Generate"}
+              </Button>
+              {aiError && <p className="text-xs text-status-error">{aiError}</p>}
+              {aiResult && (
+                <div className="flex flex-col gap-2">
+                  <Textarea readOnly rows={8} value={aiResult} className="text-xs" />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => navigator.clipboard.writeText(aiResult)}
+                  >
+                    Copy
+                  </Button>
+                </div>
+              )}
+            </div>
           </Card>
         </div>
       </div>

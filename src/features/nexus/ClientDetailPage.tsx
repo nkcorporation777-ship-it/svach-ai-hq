@@ -6,6 +6,16 @@ import { ActivityTimeline } from "@/components/shared/ActivityTimeline"
 import { HealthFlagBadge } from "@/components/shared/HealthFlagBadge"
 import { SequentialChecklistItem } from "@/components/shared/SequentialChecklistItem"
 import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { supabase } from "@/lib/supabase/client"
+import { getFunctionErrorMessage } from "@/lib/functionsError"
 import {
   useClient,
   useOnboardingSteps,
@@ -16,6 +26,12 @@ import {
 } from "./hooks"
 import { CompleteFollowUpDialog } from "./CompleteFollowUpDialog"
 import { NewFollowUpDialog } from "./NewFollowUpDialog"
+
+/** AI_ARCHITECTURE.md's "AI-Assist Architecture" — task_types valid for a client. */
+const AI_TASKS = [
+  { value: "draft_follow_up", label: "Draft follow-up message" },
+  { value: "summarize_activity", label: "Summarize recent activity" },
+]
 
 /** INFORMATION_ARCHITECTURE.md §5.2 + §5.3 (Follow-up Queue, client-scoped). */
 export function ClientDetailPage() {
@@ -30,10 +46,34 @@ export function ClientDetailPage() {
   const [completingFollowUpId, setCompletingFollowUpId] = useState<string | null>(null)
   const [newFollowUpOpen, setNewFollowUpOpen] = useState(false)
 
+  const [aiTaskType, setAiTaskType] = useState(AI_TASKS[0].value)
+  const [aiResult, setAiResult] = useState<string | null>(null)
+  const [aiError, setAiError] = useState<string | null>(null)
+  const [aiLoading, setAiLoading] = useState(false)
+
   if (isLoading) return <p className="text-sm text-muted-foreground">Loading…</p>
   if (!client) return <p className="text-sm text-muted-foreground">Client not found.</p>
 
   const specialtyName = (client as { specialties?: { name: string } | null }).specialties?.name
+
+  async function handleGenerate() {
+    setAiLoading(true)
+    setAiError(null)
+    setAiResult(null)
+    const { data, error } = await supabase.functions.invoke("ai-assist", {
+      body: { task_type: aiTaskType, entity_type: "client", entity_id: client!.id },
+    })
+    setAiLoading(false)
+    if (error) {
+      setAiError(await getFunctionErrorMessage(error, "Draft failed, try again."))
+      return
+    }
+    if (data?.error) {
+      setAiError(data.error)
+      return
+    }
+    setAiResult(data?.text ?? "")
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -154,10 +194,45 @@ export function ClientDetailPage() {
               <Sparkles className="size-4 text-brand-cyan" />
               <h2 className="font-display text-base font-semibold">AI Assist</h2>
             </div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Coming once an AI provider is connected (AI_ARCHITECTURE.md — no
-              provider chosen yet).
-            </p>
+            <div className="mt-4 flex flex-col gap-3">
+              <Select
+                value={aiTaskType}
+                onValueChange={(v) => {
+                  setAiTaskType(v)
+                  setAiResult(null)
+                  setAiError(null)
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue>
+                    {AI_TASKS.find((t) => t.value === aiTaskType)?.label}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {AI_TASKS.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button size="sm" onClick={handleGenerate} disabled={aiLoading}>
+                {aiLoading ? "Generating…" : "Generate"}
+              </Button>
+              {aiError && <p className="text-xs text-status-error">{aiError}</p>}
+              {aiResult && (
+                <div className="flex flex-col gap-2">
+                  <Textarea readOnly rows={8} value={aiResult} className="text-xs" />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => navigator.clipboard.writeText(aiResult)}
+                  >
+                    Copy
+                  </Button>
+                </div>
+              )}
+            </div>
           </Card>
         </div>
       </div>
