@@ -226,12 +226,12 @@ repeating itself.
 
 ## Open Items
 
-- **LLM provider** — still not chosen (`DECISION_LOG.md` §7). Unblocked by the adapter
-  pattern above: the Edge Functions, prompt templates, and AI-assist flow can all be
-  built now, with the concrete `AIProvider` implementation dropped in whenever the
-  provider is picked.
+- **LLM provider** — **resolved: Gemini (Google)** (`DECISION_LOG.md` §7). Being built
+  now: `GeminiProvider` class + the `ai-assist` Edge Function, with `GEMINI_API_KEY` as
+  the one new secret. The adapter pattern above means swapping providers later is still
+  just a new class, not a UI/prompt-template rewrite.
 - **Hermes** — planned, not built (`DECISION_LOG.md` §10). HQ's side of the boundary
   (endpoints, interfaces, DB columns) is designed and stubbed now; wiring to a live
-  Hermes happens once one exists — same treatment as the LLM provider above.
+  Hermes happens once one exists. Unlike the LLM provider, this is still unresolved.
 - **Cost/rate-limit policy** — not addressed here; V1 is single-user, so usage is
-  naturally bounded. Worth a real answer once a provider (and its pricing) is chosen.
+  naturally bounded. Worth a real answer now that a provider (and its pricing) is known.

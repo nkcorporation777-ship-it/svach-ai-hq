@@ -101,9 +101,20 @@ live in Phase 1.
 ## 7. AI Architecture
 
 Claude Chat and Claude Code are development tools only — not part of the runtime
-application. The runtime AI provider is decided later. Do not make implementation
-decisions that depend on a specific LLM provider; the AI layer stays modular and
-replaceable (a provider adapter, not a hardcoded SDK integration).
+application. Do not make implementation decisions that depend on a specific LLM
+provider; the AI layer stays modular and replaceable (a provider adapter, not a
+hardcoded SDK integration) — the abstraction from `AI_ARCHITECTURE.md`'s
+`AIProvider` interface is not superseded by the decision below.
+
+**Resolved (2026-08-15), corrected same day**: the runtime AI provider is **Gemini
+(Google)**, not Claude/Anthropic as first recorded — the Owner switched before any
+implementation existed, so this is a correction to the record, not a second decision
+layered on top of the first. `GeminiProvider` is the first concrete `AIProvider`
+implementation. Requires: a `GEMINI_API_KEY` held server-side only, inside the
+`ai-assist` Edge Function (`AI_ARCHITECTURE.md`) — never in client code, per
+`SECURITY_STANDARDS.md` §6. No Edge Function exists in this project yet as of this
+decision; building
+`ai-assist` is now unblocked, not something to defer further.
 
 ## 8. Engineering Philosophy
 
