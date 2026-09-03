@@ -21,6 +21,8 @@ import {
 import { useSpecialties } from "@/hooks/useSpecialties"
 import { useCreateLead } from "./hooks"
 
+const SOURCES = ["LinkedIn", "Upwork", "Cold Outreach", "Reference"]
+
 /** Mirrors the DB constraints (DATABASE_SCHEMA.md `leads`) — practice_name
  * required, at least one contact method required. The DB is the real
  * enforcement; this just avoids a doomed round-trip. */
@@ -32,6 +34,9 @@ const schema = z
     contact_phone: z.string().optional(),
     specialty_id: z.string().optional(),
     source: z.string().optional(),
+    value: z.string().optional().refine((v) => !v || Number(v) >= 0, {
+      message: "Must be zero or more",
+    }),
   })
   .refine((data) => !!data.contact_email || !!data.contact_phone, {
     message: "At least one contact method is required",
@@ -67,6 +72,7 @@ export function NewLeadDialog({
       contact_phone: values.contact_phone || null,
       specialty_id: values.specialty_id || null,
       source: values.source || null,
+      value: values.value ? Number(values.value) : null,
     })
     reset()
     onOpenChange(false)
@@ -126,8 +132,38 @@ export function NewLeadDialog({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="source">Source</Label>
-            <Input id="source" {...register("source")} placeholder="e.g. Strategy session" />
+            <Label>Source</Label>
+            <Select value={watch("source")} onValueChange={(v) => setValue("source", v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a source" />
+              </SelectTrigger>
+              <SelectContent>
+                {SOURCES.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="value">Deal value</Label>
+            <div className="relative">
+              <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground">
+                $
+              </span>
+              <Input
+                id="value"
+                type="number"
+                step="0.01"
+                min="0"
+                inputMode="decimal"
+                className="no-spinner pl-6"
+                {...register("value")}
+              />
+            </div>
+            {errors.value && <p className="text-xs text-status-error">{errors.value.message}</p>}
           </div>
 
           <DialogFooter>

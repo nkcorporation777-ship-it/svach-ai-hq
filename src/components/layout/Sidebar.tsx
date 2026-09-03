@@ -49,9 +49,7 @@ export function Sidebar() {
   return (
     <aside className="flex h-screen w-60 flex-col gap-6 border-r border-border bg-bg-secondary px-3 py-6">
       <div className="flex items-center gap-2 px-3">
-        <div className="flex size-7 items-center justify-center rounded-md bg-gradient-to-br from-brand-blue to-brand-cyan font-mono text-xs font-bold text-white">
-          S
-        </div>
+        <img src="/logo.png" alt="" className="size-7 rounded-md object-cover" />
         <span className="font-display text-sm font-semibold">Svach AI HQ</span>
       </div>
 

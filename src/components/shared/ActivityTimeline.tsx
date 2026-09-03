@@ -1,4 +1,4 @@
-import { Phone, Mail, StickyNote, ArrowRightLeft, Sparkles } from "lucide-react"
+import { Phone, Mail, StickyNote, ArrowRightLeft, Sparkles, Users, MessageCircle, CheckSquare } from "lucide-react"
 import { useActivities } from "@/hooks/useActivities"
 
 const TYPE_ICON = {
@@ -7,6 +7,9 @@ const TYPE_ICON = {
   note: StickyNote,
   stage_change: ArrowRightLeft,
   ai_draft: Sparkles,
+  meeting: Users,
+  whatsapp: MessageCircle,
+  task_complete: CheckSquare,
 } as const
 
 const TYPE_LABEL: Record<keyof typeof TYPE_ICON, string> = {
@@ -15,13 +18,16 @@ const TYPE_LABEL: Record<keyof typeof TYPE_ICON, string> = {
   note: "Note",
   stage_change: "Stage change",
   ai_draft: "AI draft",
+  meeting: "Meeting",
+  whatsapp: "WhatsApp",
+  task_complete: "Task complete",
 }
 
 export function ActivityTimeline({
   entityType,
   entityId,
 }: {
-  entityType: "lead" | "client"
+  entityType: "lead" | "client" | "project"
   entityId: string | undefined
 }) {
   const { data: activities, isLoading } = useActivities(entityType, entityId)

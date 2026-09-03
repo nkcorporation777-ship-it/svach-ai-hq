@@ -16,7 +16,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -102,6 +102,159 @@ export type Database = {
           },
         ]
       }
+      billing_settings: {
+        Row: {
+          gst_percent: number | null
+          hourly_rate_max: number | null
+          hourly_rate_min: number | null
+          id: string
+          premium_rate_max: number | null
+          premium_rate_min: number | null
+          updated_at: string
+        }
+        Insert: {
+          gst_percent?: number | null
+          hourly_rate_max?: number | null
+          hourly_rate_min?: number | null
+          id?: string
+          premium_rate_max?: number | null
+          premium_rate_min?: number | null
+          updated_at?: string
+        }
+        Update: {
+          gst_percent?: number | null
+          hourly_rate_max?: number | null
+          hourly_rate_min?: number | null
+          id?: string
+          premium_rate_max?: number | null
+          premium_rate_min?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      client_email_templates: {
+        Row: {
+          body: string
+          id: string
+          step_key: string
+          step_order_index: number
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          id?: string
+          step_key: string
+          step_order_index: number
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          id?: string
+          step_key?: string
+          step_order_index?: number
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      client_intake_submissions: {
+        Row: {
+          billing_contact_email: string | null
+          billing_contact_name: string | null
+          brand_assets_note: string | null
+          client_id: string
+          created_at: string
+          crm_name: string | null
+          database_name: string | null
+          dba: string | null
+          dns_manager: string | null
+          has_phi: boolean
+          hosting_provider: string | null
+          hours: string | null
+          id: string
+          legal_name: string
+          location: string
+          other_software: string | null
+          secondary_contact_email: string | null
+          secondary_contact_name: string | null
+          secondary_contact_phone: string | null
+          services: string
+          submitted_at: string
+          uses_crm: boolean
+          uses_database: boolean
+          website_urls: string | null
+        }
+        Insert: {
+          billing_contact_email?: string | null
+          billing_contact_name?: string | null
+          brand_assets_note?: string | null
+          client_id: string
+          created_at?: string
+          crm_name?: string | null
+          database_name?: string | null
+          dba?: string | null
+          dns_manager?: string | null
+          has_phi: boolean
+          hosting_provider?: string | null
+          hours?: string | null
+          id?: string
+          legal_name: string
+          location: string
+          other_software?: string | null
+          secondary_contact_email?: string | null
+          secondary_contact_name?: string | null
+          secondary_contact_phone?: string | null
+          services: string
+          submitted_at?: string
+          uses_crm?: boolean
+          uses_database?: boolean
+          website_urls?: string | null
+        }
+        Update: {
+          billing_contact_email?: string | null
+          billing_contact_name?: string | null
+          brand_assets_note?: string | null
+          client_id?: string
+          created_at?: string
+          crm_name?: string | null
+          database_name?: string | null
+          dba?: string | null
+          dns_manager?: string | null
+          has_phi?: boolean
+          hosting_provider?: string | null
+          hours?: string | null
+          id?: string
+          legal_name?: string
+          location?: string
+          other_software?: string | null
+          secondary_contact_email?: string | null
+          secondary_contact_name?: string | null
+          secondary_contact_phone?: string | null
+          services?: string
+          submitted_at?: string
+          uses_crm?: boolean
+          uses_database?: boolean
+          website_urls?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_intake_submissions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "client_contact_status"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "client_intake_submissions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_onboarding_steps: {
         Row: {
           client_id: string
@@ -149,6 +302,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           id: string
+          intake_token: string
           metadata: Json
           practice_name: string
           primary_contact_email: string | null
@@ -157,11 +311,13 @@ export type Database = {
           source_lead_id: string | null
           specialty_id: string | null
           updated_at: string
+          value: number | null
         }
         Insert: {
           created_at?: string
           deleted_at?: string | null
           id?: string
+          intake_token?: string
           metadata?: Json
           practice_name: string
           primary_contact_email?: string | null
@@ -170,11 +326,13 @@ export type Database = {
           source_lead_id?: string | null
           specialty_id?: string | null
           updated_at?: string
+          value?: number | null
         }
         Update: {
           created_at?: string
           deleted_at?: string | null
           id?: string
+          intake_token?: string
           metadata?: Json
           practice_name?: string
           primary_contact_email?: string | null
@@ -183,6 +341,7 @@ export type Database = {
           source_lead_id?: string | null
           specialty_id?: string | null
           updated_at?: string
+          value?: number | null
         }
         Relationships: [
           {
@@ -227,6 +386,7 @@ export type Database = {
           due_at: string
           id: string
           note: string | null
+          outcome_notes: string | null
           status: string
         }
         Insert: {
@@ -236,6 +396,7 @@ export type Database = {
           due_at: string
           id?: string
           note?: string | null
+          outcome_notes?: string | null
           status?: string
         }
         Update: {
@@ -245,6 +406,7 @@ export type Database = {
           due_at?: string
           id?: string
           note?: string | null
+          outcome_notes?: string | null
           status?: string
         }
         Relationships: [
@@ -443,6 +605,7 @@ export type Database = {
           specialty_id: string | null
           stage: string
           updated_at: string
+          value: number | null
         }
         Insert: {
           contact_email?: string | null
@@ -460,6 +623,7 @@ export type Database = {
           specialty_id?: string | null
           stage?: string
           updated_at?: string
+          value?: number | null
         }
         Update: {
           contact_email?: string | null
@@ -477,6 +641,7 @@ export type Database = {
           specialty_id?: string | null
           stage?: string
           updated_at?: string
+          value?: number | null
         }
         Relationships: [
           {
@@ -584,6 +749,48 @@ export type Database = {
         }
         Relationships: []
       }
+      pricing_tiers: {
+        Row: {
+          best_for: string | null
+          delivery_terms: string | null
+          description: string | null
+          features: string | null
+          id: string
+          is_featured: boolean
+          name: string
+          order_index: number
+          price: number | null
+          price_max: number | null
+          updated_at: string
+        }
+        Insert: {
+          best_for?: string | null
+          delivery_terms?: string | null
+          description?: string | null
+          features?: string | null
+          id?: string
+          is_featured?: boolean
+          name: string
+          order_index: number
+          price?: number | null
+          price_max?: number | null
+          updated_at?: string
+        }
+        Update: {
+          best_for?: string | null
+          delivery_terms?: string | null
+          description?: string | null
+          features?: string | null
+          id?: string
+          is_featured?: boolean
+          name?: string
+          order_index?: number
+          price?: number | null
+          price_max?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profile_departments: {
         Row: {
           department_id: string
@@ -641,6 +848,173 @@ export type Database = {
         }
         Relationships: []
       }
+      project_tasks: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_complete: boolean
+          order_index: number
+          project_id: string
+          stage: string
+          title: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_complete?: boolean
+          order_index?: number
+          project_id: string
+          stage: string
+          title: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_complete?: boolean
+          order_index?: number
+          project_id?: string
+          stage?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          client_id: string
+          completed_at: string | null
+          created_at: string
+          deleted_at: string | null
+          id: string
+          metadata: Json
+          name: string
+          stage: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          completed_at?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          metadata?: Json
+          name: string
+          stage?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          completed_at?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          metadata?: Json
+          name?: string
+          stage?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_contact_status"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposals: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string | null
+          deposit_percent: number
+          gst_percent: number | null
+          id: string
+          lead_id: string
+          price: number
+          pricing_path: string
+          sent_at: string
+          sent_to_email: string
+          signed_at: string | null
+          signer_ip: string | null
+          signer_name: string | null
+          status: string
+          token: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by?: string | null
+          deposit_percent?: number
+          gst_percent?: number | null
+          id?: string
+          lead_id: string
+          price: number
+          pricing_path: string
+          sent_at?: string
+          sent_to_email: string
+          signed_at?: string | null
+          signer_ip?: string | null
+          signer_name?: string | null
+          status?: string
+          token?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          deposit_percent?: number
+          gst_percent?: number | null
+          id?: string
+          lead_id?: string
+          price?: number
+          pricing_path?: string
+          sent_at?: string
+          sent_to_email?: string
+          signed_at?: string | null
+          signer_ip?: string | null
+          signer_name?: string | null
+          status?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposals_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       specialties: {
         Row: {
           id: string
@@ -674,6 +1048,10 @@ export type Database = {
       client_health_threshold_days: { Args: never; Returns: number }
       convert_lead_to_client: { Args: { p_lead_id: string }; Returns: string }
       is_admin: { Args: never; Returns: boolean }
+      record_client_intake_submission: {
+        Args: { p_client_id: string; p_submission: Json }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

@@ -43,6 +43,7 @@ export class GeminiProvider implements AIProvider {
     }
 
     const data = await res.json()
+
     const text =
       data?.candidates?.[0]?.content?.parts
         ?.map((p: { text?: string }) => p.text ?? "")

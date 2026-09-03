@@ -152,7 +152,7 @@ Per `INFORMATION_ARCHITECTURE.md` §5 and `DATABASE_SCHEMA.md`'s `clients`/
 - **Default onboarding checklist — strict sequential gate** (`DECISION_LOG.md` §12):
   *Contract executed* (seeded pre-completed — `won` already means this is true) →
   **Welcome message sent** → **Primary contact confirmed** → **Billing details
-  collected** → **Kickoff call scheduled**. The four real steps are gated in order —
+  collected** → **Deposit received**. The four real steps are gated in order —
   step N+1 is locked in the UI until step N is marked complete, enforced at the
   application layer, not the database (this is a workflow rule, not a security
   boundary). Reflects the handoff from a won deal to an active client — not the

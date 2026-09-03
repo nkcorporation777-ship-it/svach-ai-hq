@@ -7,9 +7,9 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { DateTimeField } from "@/components/shared/DateTimeField"
 import { useCreateFollowUp } from "./hooks"
 
 export function NewFollowUpDialog({
@@ -41,16 +41,7 @@ export function NewFollowUpDialog({
           <DialogTitle>New follow-up</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="due_at">Due</Label>
-            <Input
-              id="due_at"
-              type="datetime-local"
-              value={dueAt}
-              onChange={(e) => setDueAt(e.target.value)}
-              required
-            />
-          </div>
+          <DateTimeField id="due_at" dateLabel="Due" value={dueAt} onChange={setDueAt} />
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="note">Note</Label>
             <Textarea id="note" value={note} onChange={(e) => setNote(e.target.value)} />

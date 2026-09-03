@@ -126,6 +126,7 @@ export function SalesPage() {
                 id={lead.id}
                 practiceName={lead.practice_name}
                 specialtyName={(lead as { specialties?: { name: string } | null }).specialties?.name}
+                value={lead.value}
                 isDragging={isDragging}
               />
             )

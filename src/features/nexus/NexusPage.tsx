@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/table"
 import { HealthFlagBadge } from "@/components/shared/HealthFlagBadge"
 import { useClients } from "./hooks"
+import { FollowUpQueuePanel } from "./FollowUpQueuePanel"
 
 /**
  * INFORMATION_ARCHITECTURE.md §5. Shell only — Supabase is connected and the
@@ -28,6 +29,8 @@ export function NexusPage() {
           Product-facing name for the CRM department (DECISION_LOG.md §3).
         </p>
       </header>
+
+      <FollowUpQueuePanel />
 
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
@@ -57,8 +60,8 @@ export function NexusPage() {
                     </Link>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {(client as { specialties?: { name: string } | null }).specialties?.name ??
-                      "—"}
+                    {(client as { specialties?: { name: string } | null }).specialties
+                      ?.name ?? "—"}
                   </TableCell>
                   <TableCell>
                     <HealthFlagBadge

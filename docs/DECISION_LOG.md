@@ -216,10 +216,21 @@ reason and can't be inconsistent free text that resists reporting.
 proposed unordered 5-step list. Because `won` already means the contract is signed,
 "Contract executed" isn't a real gate anymore — it's seeded pre-completed so the
 checklist still shows the full journey. Real order: Welcome message sent → Primary
-contact confirmed → Billing details collected → Kickoff call scheduled. Sequential
-because the steps have real dependencies (can't schedule kickoff with an unconfirmed
-contact); enforced at the application layer, not the database, since this is a
+contact confirmed → Billing details collected → Deposit received. Sequential
+because the steps have real dependencies (can't request a deposit before portal
+access is granted); enforced at the application layer, not the database, since this is a
 workflow rule, not a security boundary.
+
+**Update (2026-08-24)**: the final step was originally "Kickoff call scheduled," which
+auto-emailed a scheduling request. Superseded once the cross-client Follow-up Queue
+(`follow_ups` table, `INFORMATION_ARCHITECTURE.md` §5.3) made call scheduling generic —
+any call (discovery, prototype, kickoff) is just a "Meeting" follow-up now, so a
+dedicated onboarding step for it was redundant. Replaced with "Deposit received," a
+manual tick (no payment gateway exists yet — Finance is still deferred, see §6) that
+fires a payment-confirmation email on completion. Temporary: once a payment gateway is
+integrated, this step should complete automatically off a webhook instead of a manual
+click — the trigger design already supports this (it reacts to the row's `is_complete`
+flip, not to who/what caused it).
 
 ## 13. Client Health-Flag Source of Truth
 

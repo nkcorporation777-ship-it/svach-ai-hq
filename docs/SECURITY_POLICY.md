@@ -146,6 +146,20 @@ a third-party processor for whatever data flows through the Phase 1 workflows. T
 if a future workflow ever touches patient-level data, both this doc and the n8n
 data-flow need re-checking together, not just one.
 
+**Addendum — client intake + portal access request (2026-08-22)**: the automated
+onboarding sequence now asks each client one yes/no question — whether any system
+they'd grant Svach AI access to stores patient health information — and stores only
+that boolean (`client_intake_submissions.has_phi`), never any patient data itself. The
+storage boundary above still holds: nothing patient-identifiable enters HQ. But the
+boolean exists specifically because the *feature's real-world effect* — Svach AI staff
+gaining hands-on access to a client's CRM/database that may contain PHI — is exactly
+the kind of thing this section says needs acknowledging, not a quiet extension. The
+mitigation: a `has_phi = true` (or missing) answer blocks the automated Portal Access
+Request email entirely and instead queues an `ooa_recommendations` row for the Owner.
+Approving it is the compliance checkpoint — confirming appropriate data-handling terms
+(e.g. a signed BAA or local equivalent) are in place — not just a "looks fine" click.
+See `supabase/functions/onboarding-email`'s trigger logic and `ooa-execute-action`.
+
 ## Explicitly Not Addressed Yet
 
 - **Data retention / backup policy** — `SECURITY_STANDARDS.md` §21.

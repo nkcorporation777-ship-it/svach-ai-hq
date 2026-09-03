@@ -157,7 +157,7 @@ in 14 days" = amber flag).
 ### 5.2 Client Detail page
 - Profile: practice info, specialty, engagement start date, key contacts
 - Onboarding checklist: 4-step strict sequential gate (Welcome sent → Contact
-  confirmed → Billing collected → Kickoff scheduled), plus a pre-completed "Contract
+  confirmed → Billing collected → Deposit received), plus a pre-completed "Contract
   executed" entry — `DECISION_LOG.md` §12, full mechanics in `DATABASE_SCHEMA.md`
 - Follow-up reminders: scheduled and past, with snooze/complete actions
 - Activity timeline: shared with Sales history if the client originated as a lead

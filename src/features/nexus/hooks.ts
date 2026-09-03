@@ -39,7 +39,11 @@ export function useClient(id: string | undefined) {
     queryFn: async () => {
       const [{ data: client, error: clientError }, { data: status, error: statusError }] =
         await Promise.all([
-          supabase.from("clients").select("*, specialties(name)").eq("id", id!).single(),
+          supabase
+            .from("clients")
+            .select("*, specialties(name), leads(created_at)")
+            .eq("id", id!)
+            .single(),
           supabase.from("client_contact_status").select("*").eq("client_id", id!).maybeSingle(),
         ])
       if (clientError) throw clientError
@@ -94,6 +98,22 @@ export function useCompleteOnboardingStep(clientId: string | undefined) {
   })
 }
 
+export function useIntakeSubmission(clientId: string | undefined) {
+  return useQuery({
+    queryKey: ["intakeSubmission", clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_intake_submissions")
+        .select("*")
+        .eq("client_id", clientId!)
+        .maybeSingle()
+      if (error) throw error
+      return data
+    },
+    enabled: !!clientId,
+  })
+}
+
 export function useFollowUps(clientId: string | undefined) {
   return useQuery({
     queryKey: ["followUps", clientId],
@@ -110,24 +130,68 @@ export function useFollowUps(clientId: string | undefined) {
   })
 }
 
-export function useSnoozeFollowUp(clientId: string | undefined) {
+/** Cross-client Follow-up Queue (INFORMATION_ARCHITECTURE.md §5.3) — powers the
+ * Nexus panel and the Dashboard banner. Pending only; done follow-ups have
+ * nothing actionable left to show here. */
+export function useAllFollowUps() {
+  return useQuery({
+    queryKey: ["followUps", "all"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("follow_ups")
+        .select("*, clients!inner(practice_name)")
+        .eq("status", "pending")
+        .is("clients.deleted_at", null)
+        .order("due_at")
+      if (error) throw error
+      return data
+    },
+  })
+}
+
+/** Reschedule replaces the old one-way "snooze" (which set status: 'snoozed'
+ * with no way back to an actionable date) — this just moves due_at forward,
+ * staying status: 'pending' so it's still visible and actionable. */
+export function useRescheduleFollowUp(clientId: string | undefined) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (followUpId: string) => {
+    mutationFn: async ({ followUpId, dueAt }: { followUpId: string; dueAt: string }) => {
       const { error } = await supabase
         .from("follow_ups")
-        .update({ status: "snoozed" })
+        .update({ due_at: dueAt })
         .eq("id", followUpId)
       if (error) throw error
       await logAudit({
-        action: "client.follow_up_snoozed",
+        action: "client.follow_up_rescheduled",
         entityType: "client",
         entityId: clientId,
-        metadata: { follow_up_id: followUpId },
+        metadata: { follow_up_id: followUpId, due_at: dueAt },
       })
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["followUps", clientId] })
+      queryClient.invalidateQueries({ queryKey: ["followUps"] })
+    },
+  })
+}
+
+/** The client's deal value carries over from its source lead at conversion
+ * (convert_lead_to_client), then is independently editable from here on. */
+export function useUpdateClientValue(clientId: string | undefined) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (value: number | null) => {
+      const { error } = await supabase.from("clients").update({ value }).eq("id", clientId!)
+      if (error) throw error
+      await logAudit({
+        action: "client.value_updated",
+        entityType: "client",
+        entityId: clientId,
+        metadata: { value },
+      })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["clients", clientId] })
+      queryClient.invalidateQueries({ queryKey: ["clients"] })
     },
   })
 }
@@ -159,25 +223,39 @@ export function useCreateFollowUp(clientId: string | undefined) {
   })
 }
 
-/** Completing a follow-up writes a matching call/email activity — that's what
- * actually feeds `client_contact_status`, not a direct field update
- * (DATABASE_SCHEMA.md / PRD.md §5.5). Sequential client-side writes; lower
- * stakes than the Won conversion, no atomicity concern worth an RPC for. */
+export type FollowUpContactType = "call" | "email" | "meeting" | "whatsapp"
+
+/** Completing a follow-up writes a matching activity — that's what actually
+ * feeds `client_contact_status`, not a direct field update (DATABASE_SCHEMA.md
+ * / PRD.md §5.5). `outcome_notes` records what was actually discussed
+ * (transcript, notes, a link — e.g. Fathom), separate from the follow-up's
+ * original `note` (why it was scheduled). Optionally chains straight into the
+ * next follow-up so completing and scheduling the next one is one action, not
+ * two. Sequential client-side writes; lower stakes than the Won conversion, no
+ * atomicity concern worth an RPC for. */
 export function useCompleteFollowUp(clientId: string | undefined) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({
       followUpId,
       contactType,
-      note,
+      outcomeNotes,
+      nextDueAt,
+      nextNote,
     }: {
       followUpId: string
-      contactType: "call" | "email"
-      note: string
+      contactType: FollowUpContactType
+      outcomeNotes: string
+      nextDueAt?: string
+      nextNote?: string
     }) => {
       const { error: followUpError } = await supabase
         .from("follow_ups")
-        .update({ status: "done", completed_at: new Date().toISOString() })
+        .update({
+          status: "done",
+          completed_at: new Date().toISOString(),
+          outcome_notes: outcomeNotes || null,
+        })
         .eq("id", followUpId)
       if (followUpError) throw followUpError
 
@@ -185,7 +263,7 @@ export function useCompleteFollowUp(clientId: string | undefined) {
         entity_type: "client",
         entity_id: clientId!,
         type: contactType,
-        content: note,
+        content: outcomeNotes,
       })
       if (activityError) throw activityError
 
@@ -195,9 +273,24 @@ export function useCompleteFollowUp(clientId: string | undefined) {
         entityId: clientId,
         metadata: { follow_up_id: followUpId, contact_type: contactType },
       })
+
+      if (nextDueAt) {
+        const { data: nextFollowUp, error: nextError } = await supabase
+          .from("follow_ups")
+          .insert({ client_id: clientId!, due_at: nextDueAt, note: nextNote || null })
+          .select()
+          .single()
+        if (nextError) throw nextError
+        await logAudit({
+          action: "client.follow_up_created",
+          entityType: "client",
+          entityId: clientId,
+          metadata: { follow_up_id: nextFollowUp.id, due_at: nextDueAt },
+        })
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["followUps", clientId] })
+      queryClient.invalidateQueries({ queryKey: ["followUps"] })
       queryClient.invalidateQueries({ queryKey: ["activities", "client", clientId] })
       queryClient.invalidateQueries({ queryKey: ["clients"] })
     },

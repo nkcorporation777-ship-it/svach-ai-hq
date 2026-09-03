@@ -38,8 +38,7 @@ export const departmentNav: NavItem[] = [
     label: "Delivery",
     path: "/delivery",
     icon: Rocket,
-    status: "locked",
-    phaseTag: "Phase 2",
+    status: "live",
   },
   {
     label: "Marketing",

@@ -15,7 +15,9 @@ import {
 } from "@/components/ui/select"
 import { supabase } from "@/lib/supabase/client"
 import { getFunctionErrorMessage } from "@/lib/functionsError"
+import { formatCurrency } from "@/lib/format"
 import { useLead, useDeleteLead } from "./hooks"
+import { DraftProposalCard } from "./DraftProposalCard"
 
 /** AI_ARCHITECTURE.md's "AI-Assist Architecture" — task_types valid for a lead. */
 const AI_TASKS = [
@@ -136,6 +138,10 @@ export function LeadDetailPage() {
                 <dt className="text-xs text-muted-foreground">Source</dt>
                 <dd>{lead.source || "—"}</dd>
               </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">Value</dt>
+                <dd>{formatCurrency(lead.value)}</dd>
+              </div>
               {lead.stage === "lost" && (
                 <div>
                   <dt className="text-xs text-muted-foreground">Lost reason</dt>
@@ -193,6 +199,8 @@ export function LeadDetailPage() {
               )}
             </div>
           </Card>
+
+          <DraftProposalCard lead={lead} />
         </div>
       </div>
     </div>

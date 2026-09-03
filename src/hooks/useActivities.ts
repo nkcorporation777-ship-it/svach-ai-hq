@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { supabase } from "@/lib/supabase/client"
 import type { TablesInsert } from "@/types/database"
 
-type EntityType = "lead" | "client"
+type EntityType = "lead" | "client" | "project"
 
 /**
  * Shared, polymorphic activity timeline (DATABASE_SCHEMA.md `activities`) — used

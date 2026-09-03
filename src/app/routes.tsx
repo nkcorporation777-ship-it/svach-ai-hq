@@ -11,13 +11,25 @@ import { NexusPage } from "@/features/nexus/NexusPage"
 import { ClientDetailPage } from "@/features/nexus/ClientDetailPage"
 import { SettingsPage } from "@/features/settings/SettingsPage"
 import { LoginPage } from "@/features/auth/LoginPage"
-import { Rocket, Megaphone, Wallet, Headphones } from "lucide-react"
+import { IntakePage } from "@/features/intake/IntakePage"
+import { ProposalAcceptPage } from "@/features/proposals/ProposalAcceptPage"
+import { DeliveryPage } from "@/features/delivery/DeliveryPage"
+import { ProjectDetailPage } from "@/features/delivery/ProjectDetailPage"
+import { Megaphone, Wallet, Headphones } from "lucide-react"
 
 /** One route per INFORMATION_ARCHITECTURE.md §1 sidebar item. */
 export const routes: RouteObject[] = [
   {
     path: "/login",
     element: <LoginPage />,
+  },
+  {
+    path: "/intake/:token",
+    element: <IntakePage />,
+  },
+  {
+    path: "/proposals/:token",
+    element: <ProposalAcceptPage />,
   },
   {
     element: (
@@ -34,17 +46,8 @@ export const routes: RouteObject[] = [
       { path: "/nexus", element: <NexusPage /> },
       { path: "/nexus/:id", element: <ClientDetailPage /> },
       { path: "/settings", element: <SettingsPage /> },
-      {
-        path: "/delivery",
-        element: (
-          <LockedModulePlaceholder
-            icon={Rocket}
-            label="Delivery"
-            phaseTag="Phase 2"
-            description="Project Manager Agent, structured around Discover → Design → Deploy → Optimise."
-          />
-        ),
-      },
+      { path: "/delivery", element: <DeliveryPage /> },
+      { path: "/delivery/:id", element: <ProjectDetailPage /> },
       {
         path: "/marketing",
         element: (

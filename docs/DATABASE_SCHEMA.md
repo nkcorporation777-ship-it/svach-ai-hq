@@ -95,7 +95,7 @@ entities (Delivery projects, Finance records) without a new table each time.
 | id | uuid | PK |
 | entity_type | enum(`lead`, `client`) | extend as new modules ship |
 | entity_id | uuid | the lead or client this activity belongs to |
-| type | enum(`call`, `email`, `note`, `stage_change`, `ai_draft`) | |
+| type | enum(`call`, `email`, `note`, `stage_change`, `ai_draft`, `meeting`, `whatsapp`) | DB-enforced via a CHECK constraint, not just convention — `meeting`/`whatsapp` added for the Follow-up Queue redesign; `client_contact_status`'s view filter must stay in sync with this list |
 | content | text | |
 | created_by | uuid | FK → profiles, nullable (null = AI-generated) |
 | metadata | jsonb | e.g. `{from_stage, to_stage}` for stage_change entries |
@@ -114,6 +114,7 @@ entities (Delivery projects, Finance records) without a new table each time.
 | contact_name / contact_email / contact_phone | text | |
 | specialty_id | uuid | FK → specialties, nullable |
 | source | text | how the lead arrived |
+| value | numeric(12,2) | nullable; estimated/agreed deal value in USD (no multi-currency support) |
 | stage | enum(`lead`, `contacted`, `discovery_booked`, `proposal_sent`, `verbal_commit`, `won`, `lost`) | drives the pipeline board in `INFORMATION_ARCHITECTURE.md` §4.1 |
 | lost_reason_category | enum(`budget`, `timing`, `chose_competitor`, `building_in_house`, `not_ready_for_ai`, `unresponsive`, `practice_closed`, `other`) | nullable — required by constraint when stage = lost |
 | lost_reason_detail | text | nullable — required by constraint only when `lost_reason_category = 'other'` |
@@ -166,6 +167,7 @@ product calls the module.
 | primary_contact_name / email / phone | text | |
 | specialty_id | uuid | FK → specialties, nullable |
 | source_lead_id | uuid | FK → leads, nullable |
+| value | numeric(12,2) | nullable; carried over from the source lead's `value` at conversion (`convert_lead_to_client`), independently editable afterward — not a synced figure |
 | metadata | jsonb | |
 | created_at / updated_at / deleted_at | timestamptz | |
 
@@ -221,7 +223,7 @@ step N is):
 2. Welcome message sent
 3. Primary contact confirmed
 4. Billing details collected
-5. Kickoff call scheduled
+5. Deposit received
 
 Enforcement lives in the application, not a DB trigger — this is a workflow ordering
 rule, not a security boundary, so it doesn't need the same structural guarantee as
@@ -348,7 +350,7 @@ table) — an OOA execution is just an action with `actor_type = 'agent'`.
 | Column | Type | Notes |
 |---|---|---|
 | id | uuid | PK |
-| actor_type | enum(`user`, `agent`, `system`) | Hermes-originated actions still use `agent` — see `metadata.source` below rather than a dedicated enum value |
+| actor_type | enum(`user`, `agent`, `system`) | Hermes-originated actions still use `agent` — see `metadata.source` below rather than a dedicated enum value. `system` is for a deterministic platform action with no specific human or AI decision behind it — e.g. `client.intake_submitted`, written when an external client (not an HQ user, not an AI agent) submits the public intake form via `supabase/functions/client-intake` |
 | actor_id | uuid | nullable — FK → profiles if actor_type = user, null/agent-name in metadata otherwise |
 | action | text | e.g. `lead.stage_changed`, `ooa.recommendation_approved` |
 | entity_type / entity_id | text / uuid | what was acted on |

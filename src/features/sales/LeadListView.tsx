@@ -11,10 +11,11 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog"
+import { formatCurrency } from "@/lib/format"
 import { useLeads, useDeleteLead } from "./hooks"
 
 type LeadRow = NonNullable<ReturnType<typeof useLeads>["data"]>[number]
-type SortKey = "practice_name" | "stage" | "source" | "updated_at"
+type SortKey = "practice_name" | "stage" | "source" | "value" | "updated_at"
 
 const STAGE_LABELS: Record<string, string> = {
   lead: "Lead",
@@ -30,6 +31,7 @@ const COLUMNS: { key: SortKey; label: string }[] = [
   { key: "practice_name", label: "Practice" },
   { key: "stage", label: "Stage" },
   { key: "source", label: "Source" },
+  { key: "value", label: "Value" },
   { key: "updated_at", label: "Last activity" },
 ]
 
@@ -53,6 +55,14 @@ export function LeadListView() {
     if (!leads) return []
     const copy = [...leads]
     copy.sort((a, b) => {
+      if (sortKey === "value") {
+        const av = a.value
+        const bv = b.value
+        if (av == null && bv == null) return 0
+        if (av == null) return 1
+        if (bv == null) return -1
+        return sortDir === "asc" ? av - bv : bv - av
+      }
       const av = (a[sortKey] ?? "") as string
       const bv = (b[sortKey] ?? "") as string
       const cmp = av < bv ? -1 : av > bv ? 1 : 0
@@ -130,6 +140,7 @@ export function LeadListView() {
                 </TableCell>
                 <TableCell>{STAGE_LABELS[lead.stage] ?? lead.stage}</TableCell>
                 <TableCell className="text-muted-foreground">{lead.source ?? "—"}</TableCell>
+                <TableCell className="text-muted-foreground">{formatCurrency(lead.value)}</TableCell>
                 <TableCell className="text-muted-foreground">
                   {new Date(lead.updated_at).toLocaleDateString()}
                 </TableCell>

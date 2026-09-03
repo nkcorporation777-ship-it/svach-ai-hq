@@ -1,9 +1,11 @@
-import { CheckCircle2, User, Bot, Cog } from "lucide-react"
+import { Link } from "react-router-dom"
+import { CheckCircle2, User, Bot, Cog, AlertTriangle } from "lucide-react"
 import { Card } from "@/components/shared/Card"
 import { StatTile } from "@/components/shared/StatTile"
 import { ActionQueueCard } from "@/components/shared/ActionQueueCard"
+import { formatCurrency } from "@/lib/format"
 import { useLeads } from "@/features/sales/hooks"
-import { useClients } from "@/features/nexus/hooks"
+import { useClients, useAllFollowUps } from "@/features/nexus/hooks"
 import {
   useSystemHealthEvents,
   useOoaRecommendations,
@@ -39,6 +41,7 @@ export function DashboardPage() {
   const { data: activity, isLoading: activityLoading } = useAgentActivity()
   const { data: leads } = useLeads()
   const { data: clients } = useClients()
+  const { data: followUps } = useAllFollowUps()
   const approve = useApproveRecommendation()
   const dismiss = useDismissRecommendation()
 
@@ -50,6 +53,20 @@ export function DashboardPage() {
     (l) => l.stage !== "won" && l.stage !== "lost",
   ).length
   const flaggedClientCount = (clients ?? []).filter((c) => c.isFlagged).length
+  const pipelineValue = (leads ?? [])
+    .filter((l) => l.stage !== "won" && l.stage !== "lost")
+    .reduce((sum, l) => sum + (l.value ?? 0), 0)
+
+  const endOfToday = new Date()
+  endOfToday.setHours(23, 59, 59, 999)
+  const startOfToday = new Date()
+  startOfToday.setHours(0, 0, 0, 0)
+  const overdueCount = (followUps ?? []).filter((fu) => new Date(fu.due_at) < startOfToday).length
+  const dueTodayCount = (followUps ?? []).filter((fu) => {
+    const d = new Date(fu.due_at)
+    return d >= startOfToday && d <= endOfToday
+  }).length
+  const attentionCount = overdueCount + dueTodayCount
 
   return (
     <div className="flex flex-col gap-8">
@@ -60,7 +77,23 @@ export function DashboardPage() {
         <h1 className="mt-2 font-display text-3xl font-semibold">OOA Home</h1>
       </header>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      {attentionCount > 0 && (
+        <Link
+          to="/nexus"
+          className={`flex items-center gap-3 rounded-[var(--radius-card)] border px-4 py-3 text-sm font-medium transition-colors ${
+            overdueCount > 0
+              ? "border-status-error bg-status-error/10 text-status-error hover:bg-status-error/20"
+              : "border-status-warning bg-status-warning/10 text-status-warning hover:bg-status-warning/20"
+          }`}
+        >
+          <AlertTriangle className="size-4 shrink-0" />
+          {overdueCount > 0
+            ? `${overdueCount} follow-up${overdueCount === 1 ? "" : "s"} overdue${dueTodayCount > 0 ? `, ${dueTodayCount} due today` : ""} — click to review`
+            : `${dueTodayCount} follow-up${dueTodayCount === 1 ? "" : "s"} due today — click to review`}
+        </Link>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatTile
           value={openLeadCount}
           label={`Open leads (${Object.entries(stageCounts)
@@ -69,6 +102,7 @@ export function DashboardPage() {
             .join(", ") || "none"})`}
         />
         <StatTile value={flaggedClientCount} label="Clients flagged for follow-up" />
+        <StatTile value={formatCurrency(pipelineValue)} label="Pipeline value" />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

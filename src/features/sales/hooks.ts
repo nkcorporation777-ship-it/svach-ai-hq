@@ -142,6 +142,60 @@ export function useMarkLost() {
   })
 }
 
+/** Latest-first proposal-send history for a lead — drives the status line
+ * on DraftProposalCard ("Sent — awaiting signature" / "Signed by ..."). */
+export function useProposals(leadId: string | undefined) {
+  return useQuery({
+    queryKey: ["proposals", leadId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("proposals")
+        .select("*")
+        .eq("lead_id", leadId!)
+        .order("sent_at", { ascending: false })
+      if (error) throw error
+      return data
+    },
+    enabled: !!leadId,
+  })
+}
+
+/** Emails a proposal draft to the client via the proposal-send Edge
+ * Function — creates a `proposals` row with its own accept token, marks
+ * any previous still-`sent` row for this lead as superseded, and may
+ * advance the lead's stage server-side (see that function for the rules). */
+export function useSendProposal() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (params: {
+      leadId: string
+      content: string
+      pricingPath: "hourly" | "tier"
+      price: number
+      toEmail: string
+    }) => {
+      const { data, error } = await supabase.functions.invoke("proposal-send", {
+        body: {
+          lead_id: params.leadId,
+          content: params.content,
+          pricing_path: params.pricingPath,
+          price: params.price,
+          to_email: params.toEmail,
+        },
+      })
+      if (error) throw error
+      if (data?.error) throw new Error(data.error)
+      return data as { sent: true; token: string }
+    },
+    onSuccess: (_data, params) => {
+      queryClient.invalidateQueries({ queryKey: ["proposals", params.leadId] })
+      queryClient.invalidateQueries({ queryKey: ["leads"] })
+      queryClient.invalidateQueries({ queryKey: ["leads", params.leadId] })
+      queryClient.invalidateQueries({ queryKey: ["activities", "lead", params.leadId] })
+    },
+  })
+}
+
 /** Soft delete — sets deleted_at (DATABASE_SCHEMA.md conventions), never a hard
  * DELETE. useLeads/useLead already filter on `deleted_at is null`, so a
  * soft-deleted lead simply stops appearing anywhere in the app.

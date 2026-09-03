@@ -8,6 +8,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { GeminiProvider } from "./gemini.ts"
+import { PROPOSAL_SYSTEM_PROMPT, buildProposalUserPrompt } from "./proposal.ts"
 
 const ALLOWED_ORIGINS = new Set(["http://localhost:5173", "https://hq.svach.in"])
 
@@ -136,16 +137,21 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { task_type, entity_type, entity_id } = await req.json()
+    const body = await req.json()
+    const { task_type, entity_type, entity_id } = body
+    const isProposal = task_type === "draft_proposal"
 
     const template = TASK_TEMPLATES[task_type]
-    if (!template) {
+    if (!isProposal && !template) {
       return new Response(JSON.stringify({ error: `Unknown task_type: ${task_type}` }), {
         status: 400,
         headers: { ...headers, "content-type": "application/json" },
       })
     }
-    if (template.entityType !== entity_type) {
+    // draft_proposal is a special case, not a TASK_TEMPLATES entry — it needs
+    // several extra request fields (transcript, pricing choice) the generic
+    // shape doesn't have — but it's lead-only, same rule as the templates.
+    if ((isProposal && entity_type !== "lead") || (!isProposal && template.entityType !== entity_type)) {
       return new Response(
         JSON.stringify({
           error: `task_type ${task_type} is not valid for entity_type ${entity_type}`,
@@ -189,22 +195,24 @@ Deno.serve(async (req) => {
       .order("created_at", { ascending: false })
       .limit(10)
 
-    const { data: category } = await admin
-      .from("knowledge_categories")
-      .select("id")
-      .eq("slug", template.knowledgeCategorySlug)
-      .maybeSingle()
-
     let knowledge: Record<string, any>[] = []
-    if (category) {
-      const { data } = await admin
-        .from("knowledge_documents")
-        .select("title, content")
-        .eq("category_id", category.id)
-        .is("deleted_at", null)
-        .order("updated_at", { ascending: false })
-        .limit(3)
-      knowledge = data ?? []
+    if (!isProposal) {
+      const { data: category } = await admin
+        .from("knowledge_categories")
+        .select("id")
+        .eq("slug", template.knowledgeCategorySlug)
+        .maybeSingle()
+
+      if (category) {
+        const { data } = await admin
+          .from("knowledge_documents")
+          .select("title, content")
+          .eq("category_id", category.id)
+          .is("deleted_at", null)
+          .order("updated_at", { ascending: false })
+          .limit(3)
+        knowledge = data ?? []
+      }
     }
 
     const apiKey = Deno.env.get("GEMINI_API_KEY")
@@ -216,8 +224,63 @@ Deno.serve(async (req) => {
     }
 
     const provider = new GeminiProvider(apiKey)
-    const userPrompt = template.buildUserPrompt(entity, activities ?? [], knowledge)
-    const { text, tokensUsed } = await provider.complete(template.systemPrompt, userPrompt)
+
+    let systemPrompt: string
+    let userPrompt: string
+
+    if (isProposal) {
+      const {
+        transcript = "",
+        website = "",
+        projectDescription = "",
+        pricingPath = "tier",
+        finalizedPrice = null,
+        preferredTier: preferredTierId = null,
+      } = body
+
+      const { data: tiers } = await admin
+        .from("pricing_tiers")
+        .select("name, description, features, delivery_terms, price, price_max")
+        .order("order_index")
+      const { data: billing } = await admin
+        .from("billing_settings")
+        .select("hourly_rate_min, hourly_rate_max, premium_rate_min, premium_rate_max, gst_percent")
+        .maybeSingle()
+
+      const preferredTier = preferredTierId
+        ? ((await admin
+            .from("pricing_tiers")
+            .select("name, description, features, delivery_terms, price, price_max")
+            .eq("id", preferredTierId)
+            .maybeSingle()).data ?? null)
+        : null
+
+      systemPrompt = PROPOSAL_SYSTEM_PROMPT
+      userPrompt = buildProposalUserPrompt({
+        practiceName: entity.practice_name,
+        contactName: entity.contact_name,
+        specialty: entity.specialties?.name ?? "",
+        website,
+        projectDescription,
+        transcript,
+        pricingPath,
+        finalizedPrice,
+        preferredTier,
+        tiers: tiers ?? [],
+        billing: billing ?? {
+          hourly_rate_min: null,
+          hourly_rate_max: null,
+          premium_rate_min: null,
+          premium_rate_max: null,
+          gst_percent: null,
+        },
+      })
+    } else {
+      systemPrompt = template.systemPrompt
+      userPrompt = template.buildUserPrompt(entity, activities ?? [], knowledge)
+    }
+
+    const { text, tokensUsed } = await provider.complete(systemPrompt, userPrompt)
 
     const { error: auditError } = await admin.from("audit_logs").insert({
       actor_type: "agent",

@@ -131,7 +131,31 @@
   }
 }
 
+@keyframes glow-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.08);
+  }
+}
+
 @layer utilities {
+  /* Hides the native up/down stepper on <input type="number"> — every numeric
+     field in HQ so far is a typed amount (deal value), not a counter, so the
+     spinner is dead chrome, not a control anyone uses. */
+  .no-spinner::-webkit-outer-spin-button,
+  .no-spinner::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .no-spinner {
+    -moz-appearance: textfield;
+  }
+
   /* The one glassmorphism recipe, measured directly — DESIGN_SYSTEM.md "Surfaces".
      Every card/panel/modal in HQ uses this exact recipe, not an approximation. */
   .glass-card {

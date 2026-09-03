@@ -1,11 +1,12 @@
 import { useState } from "react"
 import { useParams, Link } from "react-router-dom"
-import { ArrowLeft, Sparkles, Plus } from "lucide-react"
+import { ArrowLeft, Sparkles, Plus, Pencil } from "lucide-react"
 import { Card } from "@/components/shared/Card"
 import { ActivityTimeline } from "@/components/shared/ActivityTimeline"
 import { HealthFlagBadge } from "@/components/shared/HealthFlagBadge"
 import { SequentialChecklistItem } from "@/components/shared/SequentialChecklistItem"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
@@ -16,16 +17,20 @@ import {
 } from "@/components/ui/select"
 import { supabase } from "@/lib/supabase/client"
 import { getFunctionErrorMessage } from "@/lib/functionsError"
+import { formatCurrency } from "@/lib/format"
 import {
   useClient,
   useOnboardingSteps,
   useCompleteOnboardingStep,
+  useIntakeSubmission,
   useFollowUps,
   useCompleteFollowUp,
-  useSnoozeFollowUp,
+  useRescheduleFollowUp,
+  useUpdateClientValue,
 } from "./hooks"
 import { CompleteFollowUpDialog } from "./CompleteFollowUpDialog"
 import { NewFollowUpDialog } from "./NewFollowUpDialog"
+import { RescheduleFollowUpDialog } from "./RescheduleFollowUpDialog"
 
 /** AI_ARCHITECTURE.md's "AI-Assist Architecture" — task_types valid for a client. */
 const AI_TASKS = [
@@ -39,12 +44,17 @@ export function ClientDetailPage() {
   const { data: client, isLoading } = useClient(id)
   const { data: steps } = useOnboardingSteps(id)
   const completeStep = useCompleteOnboardingStep(id)
+  const { data: intake } = useIntakeSubmission(id)
   const { data: followUps } = useFollowUps(id)
   const completeFollowUp = useCompleteFollowUp(id)
-  const snoozeFollowUp = useSnoozeFollowUp(id)
+  const rescheduleFollowUp = useRescheduleFollowUp(id)
+  const updateValue = useUpdateClientValue(id)
 
   const [completingFollowUpId, setCompletingFollowUpId] = useState<string | null>(null)
+  const [reschedulingFollowUpId, setReschedulingFollowUpId] = useState<string | null>(null)
   const [newFollowUpOpen, setNewFollowUpOpen] = useState(false)
+  const [editingValue, setEditingValue] = useState(false)
+  const [valueDraft, setValueDraft] = useState("")
 
   const [aiTaskType, setAiTaskType] = useState(AI_TASKS[0].value)
   const [aiResult, setAiResult] = useState<string | null>(null)
@@ -55,6 +65,7 @@ export function ClientDetailPage() {
   if (!client) return <p className="text-sm text-muted-foreground">Client not found.</p>
 
   const specialtyName = (client as { specialties?: { name: string } | null }).specialties?.name
+  const leadAddedAt = (client as { leads?: { created_at: string } | null }).leads?.created_at
 
   async function handleGenerate() {
     setAiLoading(true)
@@ -110,6 +121,70 @@ export function ClientDetailPage() {
             </div>
           </Card>
 
+          {intake && (
+            <Card>
+              <h2 className="font-display text-base font-semibold">Intake Details</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Submitted {new Date(intake.submitted_at).toLocaleString()} via the client intake form.
+              </p>
+              <dl className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                <div>
+                  <dt className="text-xs text-muted-foreground">Legal name</dt>
+                  <dd>{intake.legal_name}{intake.dba && ` (dba ${intake.dba})`}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Location</dt>
+                  <dd>{intake.location}</dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="text-xs text-muted-foreground">Services</dt>
+                  <dd>{intake.services}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Hours</dt>
+                  <dd>{intake.hours || "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Website</dt>
+                  <dd>{intake.website_urls || "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">CRM</dt>
+                  <dd>{intake.uses_crm ? intake.crm_name || "Yes (unnamed)" : "None"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Database / backend</dt>
+                  <dd>{intake.uses_database ? intake.database_name || "Yes (unnamed)" : "None"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Hosting</dt>
+                  <dd>{intake.hosting_provider || "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">DNS manager</dt>
+                  <dd>{intake.dns_manager || "—"}</dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="text-xs text-muted-foreground">Other software</dt>
+                  <dd>{intake.other_software || "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Billing contact</dt>
+                  <dd>
+                    {intake.billing_contact_name || "—"}
+                    {intake.billing_contact_email && ` (${intake.billing_contact_email})`}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">PHI</dt>
+                  <dd className={intake.has_phi ? "font-medium text-status-warning" : ""}>
+                    {intake.has_phi ? "Yes — access request held for review" : "No"}
+                  </dd>
+                </div>
+              </dl>
+            </Card>
+          )}
+
           <Card>
             <div className="flex items-center justify-between">
               <h2 className="font-display text-base font-semibold">Follow-up Queue</h2>
@@ -139,12 +214,19 @@ export function ClientDetailPage() {
                           {overdue && " — overdue"}
                         </p>
                         {fu.note && <p className="text-xs text-muted-foreground">{fu.note}</p>}
+                        {fu.outcome_notes && (
+                          <p className="text-xs text-muted-foreground">Outcome: {fu.outcome_notes}</p>
+                        )}
                         <p className="text-xs text-muted-foreground capitalize">{fu.status}</p>
                       </div>
                       {fu.status === "pending" && (
                         <div className="flex gap-2">
-                          <Button size="sm" variant="ghost" onClick={() => snoozeFollowUp.mutate(fu.id)}>
-                            Snooze
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setReschedulingFollowUpId(fu.id)}
+                          >
+                            Reschedule
                           </Button>
                           <Button size="sm" onClick={() => setCompletingFollowUpId(fu.id)}>
                             Complete
@@ -185,6 +267,61 @@ export function ClientDetailPage() {
               <div>
                 <dt className="text-xs text-muted-foreground">Specialty</dt>
                 <dd>{specialtyName || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">Value</dt>
+                {editingValue ? (
+                  <div className="mt-1 flex items-center gap-2">
+                    <div className="relative">
+                      <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground">
+                        $
+                      </span>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={valueDraft}
+                        onChange={(e) => setValueDraft(e.target.value)}
+                        className="no-spinner h-8 pl-6"
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      disabled={updateValue.isPending}
+                      onClick={() => {
+                        const parsed = valueDraft === "" ? null : Number(valueDraft)
+                        updateValue.mutate(parsed, { onSuccess: () => setEditingValue(false) })
+                      }}
+                    >
+                      Save
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditingValue(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <dd className="flex items-center gap-2">
+                    {formatCurrency(client.value)}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setValueDraft(client.value != null ? String(client.value) : "")
+                        setEditingValue(true)
+                      }}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <Pencil className="size-3.5" />
+                    </button>
+                  </dd>
+                )}
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">Lead added</dt>
+                <dd>{leadAddedAt ? new Date(leadAddedAt).toLocaleDateString() : "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">Onboarded</dt>
+                <dd>{new Date(client.created_at).toLocaleDateString()}</dd>
               </div>
             </dl>
           </Card>
@@ -241,11 +378,24 @@ export function ClientDetailPage() {
         open={!!completingFollowUpId}
         onOpenChange={(open) => !open && setCompletingFollowUpId(null)}
         isSubmitting={completeFollowUp.isPending}
-        onConfirm={(contactType, note) => {
+        onConfirm={(contactType, outcomeNotes, nextDueAt, nextNote) => {
           if (!completingFollowUpId) return
           completeFollowUp.mutate(
-            { followUpId: completingFollowUpId, contactType, note },
+            { followUpId: completingFollowUpId, contactType, outcomeNotes, nextDueAt, nextNote },
             { onSuccess: () => setCompletingFollowUpId(null) },
+          )
+        }}
+      />
+
+      <RescheduleFollowUpDialog
+        open={!!reschedulingFollowUpId}
+        onOpenChange={(open) => !open && setReschedulingFollowUpId(null)}
+        isSubmitting={rescheduleFollowUp.isPending}
+        onConfirm={(dueAt) => {
+          if (!reschedulingFollowUpId) return
+          rescheduleFollowUp.mutate(
+            { followUpId: reschedulingFollowUpId, dueAt },
+            { onSuccess: () => setReschedulingFollowUpId(null) },
           )
         }}
       />
