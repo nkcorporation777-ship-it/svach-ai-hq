@@ -10,7 +10,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { z } from "https://esm.sh/zod@3"
 
-const ALLOWED_ORIGINS = new Set(["http://localhost:5173", "https://hq.svach.in"])
+const ALLOWED_ORIGINS = new Set([
+  "http://localhost:5173",
+  "https://hq.svach.in",
+  "https://svachaihq.netlify.app",
+])
 
 function corsHeaders(origin: string | null) {
   const allowOrigin = origin && ALLOWED_ORIGINS.has(origin) ? origin : ""
