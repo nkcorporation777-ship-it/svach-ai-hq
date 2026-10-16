@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { useProposalByToken, useSignProposal } from "./hooks"
+import { SignaturePad } from "./SignaturePad"
 
 /** Public, unauthenticated proposal review + e-signature page — the client
  * is not an HQ user, so auth is the unguessable token in the URL, checked
@@ -16,6 +17,7 @@ export function ProposalAcceptPage() {
 
   const [signerName, setSignerName] = useState("")
   const [agreed, setAgreed] = useState(false)
+  const [signatureImage, setSignatureImage] = useState<string | null>(null)
   const [signError, setSignError] = useState<string | null>(null)
 
   function handleSign() {
@@ -25,12 +27,16 @@ export function ProposalAcceptPage() {
       setSignError("Please type your full legal name.")
       return
     }
+    if (!signatureImage) {
+      setSignError("Please add your signature — draw it or upload an image.")
+      return
+    }
     if (!agreed) {
       setSignError("Please confirm you've reviewed and accept this proposal.")
       return
     }
     signProposal.mutate(
-      { token, signerName: signerName.trim() },
+      { token, signerName: signerName.trim(), signatureImage },
       { onError: (err) => setSignError(err instanceof Error ? err.message : "Something went wrong.") },
     )
   }
@@ -58,12 +64,35 @@ export function ProposalAcceptPage() {
 
   if (signedSuccessfully) {
     const signerLabel = signProposal.isSuccess ? signerName.trim() : proposal.signer_name
+    const signedOn = proposal.signed_at ? new Date(proposal.signed_at) : new Date()
+    const shownSignature = signProposal.isSuccess ? signatureImage : proposal.signature_image
     return (
-      <div className="mx-auto flex min-h-screen max-w-xl flex-col items-center justify-center gap-3 px-6 text-center">
-        <h1 className="font-display text-2xl font-semibold">Thanks — you're all set.</h1>
-        <p className="text-sm text-muted-foreground">
-          Signed by {signerLabel}. We'll be in touch shortly with next steps.
-        </p>
+      <div className="mx-auto flex max-w-xl flex-col gap-8 px-6 py-12">
+        <header>
+          <p className="font-mono text-xs uppercase tracking-[1.68px] text-brand-cyan">
+            Proposal
+          </p>
+          <h1 className="mt-2 font-display text-3xl font-semibold">{proposal.practice_name}</h1>
+        </header>
+
+        <div className="rounded-lg border border-border p-4">
+          <h2 className="font-display text-lg font-semibold">Thanks — you're all set.</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Signed by {signerLabel} on {signedOn.toLocaleDateString()}. We'll be in touch shortly
+            with next steps. You can come back to this page any time to read the proposal again.
+          </p>
+          {shownSignature && (
+            <img
+              src={shownSignature}
+              alt={`Signature of ${signerLabel}`}
+              className="mt-3 h-24 rounded-md border border-border bg-white"
+            />
+          )}
+        </div>
+
+        <div className="whitespace-pre-wrap rounded-lg border border-border p-4 text-sm">
+          {proposal.content}
+        </div>
       </div>
     )
   }
@@ -100,6 +129,10 @@ export function ProposalAcceptPage() {
             value={signerName}
             onChange={(e) => setSignerName(e.target.value)}
           />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label>Your signature</Label>
+          <SignaturePad onChange={setSignatureImage} />
         </div>
         <label className="flex items-start gap-2 text-sm">
           <input

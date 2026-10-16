@@ -14,6 +14,8 @@ const ALLOWED_ORIGINS = new Set([
   "https://svachaihq.netlify.app",
 ])
 
+const MAX_SIGNATURE_CHARS = 400_000
+
 function corsHeaders(origin: string | null) {
   const allowOrigin = origin && ALLOWED_ORIGINS.has(origin) ? origin : ""
   return {
@@ -33,12 +35,25 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { token, signer_name } = await req.json()
+    const { token, signer_name, signature_image } = await req.json()
     if (!token || !signer_name || !String(signer_name).trim()) {
       return new Response(JSON.stringify({ error: "A signer name is required." }), {
         status: 400,
         headers: { ...headers, "content-type": "application/json" },
       })
+    }
+    // The signature is a small PNG/JPEG data URL produced by the signing page's
+    // canvas (drawn or uploaded, downscaled client-side). Validate shape and
+    // cap size so this public endpoint can't be used to store arbitrary blobs.
+    if (
+      typeof signature_image !== "string" ||
+      !/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(signature_image) ||
+      signature_image.length > MAX_SIGNATURE_CHARS
+    ) {
+      return new Response(
+        JSON.stringify({ error: "Please add your signature (draw it or upload an image)." }),
+        { status: 400, headers: { ...headers, "content-type": "application/json" } },
+      )
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!
@@ -73,6 +88,7 @@ Deno.serve(async (req) => {
       .update({
         status: "accepted",
         signer_name: String(signer_name).trim(),
+        signature_image,
         signed_at: new Date().toISOString(),
         signer_ip: signerIp,
       })

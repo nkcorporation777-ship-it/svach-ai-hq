@@ -12,6 +12,7 @@ export interface ProposalPortalData {
   deposit_percent: number
   signer_name: string | null
   signed_at: string | null
+  signature_image: string | null
 }
 
 /** Public, token-authenticated read — proposal-get is GET-with-query-param,
@@ -37,11 +38,19 @@ export function useProposalByToken(token: string | undefined) {
 
 export function useSignProposal() {
   return useMutation({
-    mutationFn: async ({ token, signerName }: { token: string; signerName: string }) => {
+    mutationFn: async ({
+      token,
+      signerName,
+      signatureImage,
+    }: {
+      token: string
+      signerName: string
+      signatureImage: string
+    }) => {
       const res = await fetch(`${supabaseUrl}/functions/v1/proposal-accept`, {
         method: "POST",
         headers: { "content-type": "application/json", apikey: supabaseAnonKey },
-        body: JSON.stringify({ token, signer_name: signerName }),
+        body: JSON.stringify({ token, signer_name: signerName, signature_image: signatureImage }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error ?? "Something went wrong — please try again.")

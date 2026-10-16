@@ -109,8 +109,9 @@ export function DraftProposalCard({ lead }: { lead: Tables<"leads"> }) {
         <FileText className="size-4 text-brand-cyan" />
         <h2 className="font-display text-base font-semibold">Draft Proposal</h2>
       </div>
-      <div className="mt-4 flex flex-col gap-3">
-        <div>
+      <div className="mt-4 flex flex-col gap-6">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="md:col-span-2">
           <label className="text-xs text-muted-foreground">Discovery call transcript</label>
           <Textarea
             rows={4}
@@ -196,28 +197,35 @@ export function DraftProposalCard({ lead }: { lead: Tables<"leads"> }) {
             </Select>
           </div>
         )}
+        </div>
 
-        <Button size="sm" onClick={handleGenerate} disabled={loading || !canGenerate}>
+        <Button
+          size="sm"
+          className="w-fit"
+          onClick={handleGenerate}
+          disabled={loading || !canGenerate}
+        >
           {loading ? "Generating…" : "Generate"}
         </Button>
         {error && <p className="text-xs text-status-error">{error}</p>}
         {result && (
           <div className="flex flex-col gap-2">
             <Textarea
-              rows={14}
+              rows={30}
               value={result}
               onChange={(e) => setResult(e.target.value)}
-              className="text-xs"
+              className="min-h-[70vh] text-sm leading-relaxed"
             />
             <Button
               size="sm"
               variant="ghost"
+              className="w-fit"
               onClick={() => navigator.clipboard.writeText(result)}
             >
               Copy
             </Button>
 
-            <div className="mt-2 flex flex-col gap-3 border-t border-border pt-3">
+            <div className="mt-2 grid grid-cols-1 gap-3 border-t border-border pt-3 md:grid-cols-3 md:items-end">
               <div>
                 <label className="text-xs text-muted-foreground">Confirmed price</label>
                 <div className="relative mt-1">
@@ -245,9 +253,11 @@ export function DraftProposalCard({ lead }: { lead: Tables<"leads"> }) {
               <Button size="sm" onClick={handleSendToClient} disabled={sendProposal.isPending}>
                 {sendProposal.isPending ? "Sending…" : "Send to Client"}
               </Button>
-              {sendError && <p className="text-xs text-status-error">{sendError}</p>}
+              {sendError && (
+                <p className="text-xs text-status-error md:col-span-3">{sendError}</p>
+              )}
               {sendProposal.isSuccess && (
-                <p className="text-xs text-brand-cyan">Sent — awaiting signature.</p>
+                <p className="text-xs text-brand-cyan md:col-span-3">Sent — awaiting signature.</p>
               )}
             </div>
           </div>

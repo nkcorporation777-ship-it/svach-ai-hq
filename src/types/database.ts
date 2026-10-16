@@ -963,6 +963,7 @@ export type Database = {
           pricing_path: string
           sent_at: string
           sent_to_email: string
+          signature_image: string | null
           signed_at: string | null
           signer_ip: string | null
           signer_name: string | null
@@ -981,6 +982,7 @@ export type Database = {
           pricing_path: string
           sent_at?: string
           sent_to_email: string
+          signature_image?: string | null
           signed_at?: string | null
           signer_ip?: string | null
           signer_name?: string | null
@@ -999,6 +1001,7 @@ export type Database = {
           pricing_path?: string
           sent_at?: string
           sent_to_email?: string
+          signature_image?: string | null
           signed_at?: string | null
           signer_ip?: string | null
           signer_name?: string | null

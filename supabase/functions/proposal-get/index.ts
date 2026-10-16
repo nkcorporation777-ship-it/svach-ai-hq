@@ -45,7 +45,9 @@ Deno.serve(async (req) => {
 
     const { data: proposal, error } = await admin
       .from("proposals")
-      .select("content, status, price, gst_percent, deposit_percent, signer_name, signed_at, lead_id")
+      .select(
+        "content, status, price, gst_percent, deposit_percent, signer_name, signed_at, signature_image, lead_id",
+      )
       .eq("token", token)
       .single()
     if (error || !proposal) {
@@ -71,6 +73,7 @@ Deno.serve(async (req) => {
         deposit_percent: proposal.deposit_percent,
         signer_name: proposal.signer_name,
         signed_at: proposal.signed_at,
+        signature_image: proposal.signature_image,
       }),
       { headers: { ...headers, "content-type": "application/json" } },
     )

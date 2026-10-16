@@ -199,10 +199,10 @@ export function LeadDetailPage() {
               )}
             </div>
           </Card>
-
-          <DraftProposalCard lead={lead} />
         </div>
       </div>
+
+      <DraftProposalCard lead={lead} />
     </div>
   )
 }
