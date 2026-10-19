@@ -1339,6 +1339,7 @@ export type Database = {
           name: string
           retell_agent_id: string
           synced_at: string | null
+          tracked: boolean
         }
         Insert: {
           audience?: string
@@ -1350,6 +1351,7 @@ export type Database = {
           name: string
           retell_agent_id: string
           synced_at?: string | null
+          tracked?: boolean
         }
         Update: {
           audience?: string
@@ -1361,6 +1363,7 @@ export type Database = {
           name?: string
           retell_agent_id?: string
           synced_at?: string | null
+          tracked?: boolean
         }
         Relationships: [
           {

@@ -106,6 +106,18 @@ Deno.serve(async (req) => {
     if (!call?.call_id || !call?.agent_id) {
       return new Response(null, { status: 204 })
     }
+
+    // Agent-level connection: only agents the Owner connected in HQ are
+    // recorded. Anything else in the Retell account is acknowledged and dropped
+    // before a call, lead, or timeline entry could be created.
+    const { data: allowed } = await admin
+      .from("voice_agents")
+      .select("id")
+      .eq("retell_agent_id", call.agent_id)
+      .eq("tracked", true)
+      .maybeSingle()
+    if (!allowed) return new Response(null, { status: 204 })
+
     const result = await ingestCall(admin, call, { event })
 
     // Hot lead → tell the Owner right away. Only the first time this call is

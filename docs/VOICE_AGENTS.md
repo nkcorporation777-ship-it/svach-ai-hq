@@ -39,7 +39,8 @@ scheduler uses the same shared secret as the onboarding emails).
 1. Create the agents below (**Section 3**). Give the **demo agent** a short
    maximum call duration (e.g. 3–5 minutes) — that's your cost control for the
    public link.
-2. **Webhook**: set the account/agent webhook URL to
+2. **Webhook**: set the webhook URL **on each agent you want HQ to see** (not
+   the whole account) to
    `https://fsfzenkycnoxearenpdp.supabase.co/functions/v1/retell-webhook`
    and make sure these events are on: `call_started`, `call_ended`,
    `call_analyzed`, and `transcript_updated` (for the live transcript).
@@ -60,9 +61,14 @@ Make the **email** field required on the booking form (HQ matches people by emai
 
 ### In HQ
 
-Voice Agents → **Agents** tab: set each agent's *Serves* (`Svach AI`, `Demo`) and
-optionally link it to a client. → **Sync from Retell** pulls agents and the last
-30 days of calls. → **Campaigns**: pick an agent + your Retell number per
+Voice Agents → **Agents** tab: **Connect an agent** by pasting its Retell agent ID
+(`agent_…`, from the agent's page in Retell). HQ only records calls for agents
+connected here — every other agent in the Retell account is ignored, and HQ
+never lists them. Set each connected agent's *Serves* (`Svach AI`, `Demo`),
+optionally link it to a client, or disconnect it with the plug button. →
+**Sync from Retell** refreshes the connected agents and backfills *their* last
+30 days of calls. (Retell's API key is account-wide, so the limit is enforced in
+HQ: the key itself can't be restricted to one agent.) → **Campaigns**: pick an agent + your Retell number per
 campaign, switch it on.
 
 ## 2. Post-call analysis fields (add to every agent)

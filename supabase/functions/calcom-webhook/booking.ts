@@ -42,6 +42,44 @@ async function findContact(admin: Admin, email: string | null, phone: string | n
   return null
 }
 
+// Cal.com booking-form answers arrive as { <field id>: { label, value } }. The
+// field ids are whatever was typed in the event type (e.g. "Company-Name"), so
+// match loosely instead of by one exact key.
+// deno-lint-ignore no-explicit-any
+type Responses = Record<string, any>
+
+const BASIC_FIELDS = new Set(["name", "email", "attendeephonenumber", "phone", "location", "title", "guests", "reschedulereason"])
+
+function answerText(v: unknown): string {
+  if (Array.isArray(v)) return v.map(String).join(", ")
+  if (v === true) return "Yes"
+  if (v === false || v === null || v === undefined) return ""
+  return String(v).trim()
+}
+
+export function practiceFromResponses(responses: Responses): string | null {
+  for (const [key, field] of Object.entries(responses)) {
+    if (/company|practice|clinic|organi[sz]ation/i.test(key) && !/employee|department/i.test(key)) {
+      const text = answerText(field?.value)
+      if (text) return text.slice(0, 120)
+    }
+  }
+  return null
+}
+
+/** The custom questions a person answered on the booking form, as readable lines. */
+export function intakeAnswers(responses: Responses): string[] {
+  const lines: string[] = []
+  for (const [key, field] of Object.entries(responses)) {
+    if (BASIC_FIELDS.has(key.toLowerCase()) || field?.isHidden) continue
+    const text = answerText(field?.value)
+    if (!text || /^confirmation$/i.test(key)) continue
+    const label = String(field?.label || key.replace(/-/g, " ")).replace(/\s+/g, " ").trim()
+    lines.push(`${label}: ${text}`)
+  }
+  return lines
+}
+
 async function rebuildReminders(admin: Admin, appointmentId: string, email: string | null, startsAt: string) {
   // Anything not yet sent is replaced by the new schedule.
   await admin
@@ -172,7 +210,7 @@ export async function processBooking(
     const { data: lead, error: leadError } = await admin
       .from("leads")
       .insert({
-        practice_name: responses.company?.value || responses.practice?.value || name || email || "Cal.com booking",
+        practice_name: practiceFromResponses(responses) || name || email || "Cal.com booking",
         contact_name: name,
         contact_email: email,
         contact_phone: phone,
@@ -193,6 +231,18 @@ export async function processBooking(
       entity_id: lead.id,
       metadata: { source: "calcom", provider_booking_uid: uid },
     })
+    // What they told us on the booking form stays on the lead's timeline.
+    const answers = intakeAnswers(responses)
+    if (answers.length) {
+      await admin.from("activities").insert({
+        entity_type: "lead",
+        entity_id: lead.id,
+        type: "note",
+        content: `Booking form answers:\n${answers.join("\n")}`.slice(0, 4000),
+        created_by: null,
+        metadata: { source: "calcom", provider_booking_uid: uid },
+      })
+    }
   }
 
   // Link the voice call that most likely produced this booking.

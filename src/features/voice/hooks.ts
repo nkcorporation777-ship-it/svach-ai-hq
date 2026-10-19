@@ -26,7 +26,12 @@ export function useVoiceAgents() {
   return useQuery({
     queryKey: ["voice", "agents", demo],
     queryFn: async () => {
-      let q = supabase.from("voice_agents").select("*, clients(id, practice_name)").order("name")
+      // Only agents the Owner added (tracked) — HQ ignores every other Retell agent.
+      let q = supabase
+        .from("voice_agents")
+        .select("*, clients(id, practice_name)")
+        .eq("tracked", true)
+        .order("name")
       q = demo ? q.eq("audience", "demo") : q.neq("audience", "demo")
       const { data, error } = await q
       if (error) throw error
@@ -173,6 +178,42 @@ export function useSyncRetell() {
         transcriptsFetched: number
         failed: number
       }
+    },
+    onSuccess: () => invalidateVoice(queryClient),
+  })
+}
+
+/** Connects ONE Retell agent by its ID (the function checks it exists in Retell
+ * and reads just that agent's name) — HQ never lists the account's other agents. */
+export function useAddRetellAgent() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (agentId: string) => {
+      const { data, error } = await supabase.functions.invoke("retell-sync", {
+        body: { action: "add_agent", agent_id: agentId.trim() },
+      })
+      if (error) throw error
+      if (data?.error) throw new Error(data.error)
+      await logAudit({
+        action: "voice.agent_added",
+        entityType: "voice_agent",
+        entityId: data?.id,
+        metadata: { retell_agent_id: agentId.trim() },
+      })
+      return data as { id: string; name: string }
+    },
+    onSuccess: () => invalidateVoice(queryClient),
+  })
+}
+
+/** Stops HQ recording this agent's calls. History stays; new calls are ignored. */
+export function useStopTrackingAgent() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("voice_agents").update({ tracked: false }).eq("id", id)
+      if (error) throw error
+      await logAudit({ action: "voice.agent_untracked", entityType: "voice_agent", entityId: id })
     },
     onSuccess: () => invalidateVoice(queryClient),
   })
