@@ -258,3 +258,19 @@ If documentation conflicts, precedence order: PRD → Security (`SECURITY_STANDA
 If requirements remain unclear: do not guess. Explain the conflict, recommend the best
 solution, wait for approval before implementation. The goal is a production-quality
 foundation for V1, not anticipating every future feature.
+
+## Voice Agents (decided with the department build)
+
+- **Retell does the talking, HQ does the record-keeping.** HQ never runs the agent;
+  signed webhooks feed calls in, and HQ writes the summary to the lead/client timeline.
+- **Cal.com books, HQ tracks.** Retell's built-in Cal.com integration handles
+  booking/reschedule/cancel; HQ listens to Cal.com webhooks (provider-neutral
+  `appointments` table, Calendly can follow).
+- **Unknown callers become leads** (source "Voice Agent"); real conversations only
+  (15 s+, not voicemail).
+- **Outbound is owner-initiated** ("Call now"); no autonomous dialing until an OOA
+  approval flow exists.
+- **Reminders: email now (24h + 1h), WhatsApp later** once a provider is chosen.
+- **Demo mode is a display filter**, not isolation; synthetic data only.
+- Browser web calls use Retell's `RetellWebClient` with a server-minted token
+  (deprecated upstream, removal in SDK 4.0 — pinned to ^3).

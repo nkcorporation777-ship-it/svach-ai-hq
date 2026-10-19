@@ -18,6 +18,7 @@ import { getFunctionErrorMessage } from "@/lib/functionsError"
 import { formatCurrency } from "@/lib/format"
 import { useLead, useDeleteLead } from "./hooks"
 import { DraftProposalCard } from "./DraftProposalCard"
+import { EntityAppointmentsCard } from "@/features/voice/EntityAppointmentsCard"
 
 /** AI_ARCHITECTURE.md's "AI-Assist Architecture" — task_types valid for a lead. */
 const AI_TASKS = [
@@ -153,6 +154,8 @@ export function LeadDetailPage() {
               )}
             </dl>
           </Card>
+
+          <EntityAppointmentsCard entityType="lead" entityId={lead.id} />
 
           <Card>
             <div className="flex items-center gap-2">

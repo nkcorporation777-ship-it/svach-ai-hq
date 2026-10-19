@@ -28,6 +28,7 @@ import {
   useRescheduleFollowUp,
   useUpdateClientValue,
 } from "./hooks"
+import { EntityAppointmentsCard } from "@/features/voice/EntityAppointmentsCard"
 import { CompleteFollowUpDialog } from "./CompleteFollowUpDialog"
 import { NewFollowUpDialog } from "./NewFollowUpDialog"
 import { RescheduleFollowUpDialog } from "./RescheduleFollowUpDialog"
@@ -325,6 +326,8 @@ export function ClientDetailPage() {
               </div>
             </dl>
           </Card>
+
+          <EntityAppointmentsCard entityType="client" entityId={client.id} />
 
           <Card>
             <div className="flex items-center gap-2">

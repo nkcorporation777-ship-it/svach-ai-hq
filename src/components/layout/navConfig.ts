@@ -7,6 +7,7 @@ import {
   Megaphone,
   Wallet,
   Headphones,
+  Mic,
   Settings,
   type LucideIcon,
 } from "lucide-react"
@@ -40,6 +41,7 @@ export const departmentNav: NavItem[] = [
     icon: Rocket,
     status: "live",
   },
+  { label: "Voice Agents", path: "/voice", icon: Mic, status: "live" },
   {
     label: "Marketing",
     path: "/marketing",

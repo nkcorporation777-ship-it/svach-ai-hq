@@ -1,17 +1,24 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { supabase } from "@/lib/supabase/client"
 import { logAudit } from "@/lib/audit"
+import { useDemoMode } from "@/features/voice/demoMode"
 import type { TablesInsert } from "@/types/database"
 
+/** Voice-agent demo mode swaps this list to show ONLY the synthetic demo leads
+ * (and hides them otherwise), so a client demo never exposes real records here. */
 export function useLeads() {
+  const demo = useDemoMode()
   return useQuery({
-    queryKey: ["leads"],
+    queryKey: ["leads", "list", demo],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const q = supabase
         .from("leads")
         .select("*, specialties(name)")
         .is("deleted_at", null)
         .order("created_at", { ascending: false })
+      const { data, error } = await (demo
+        ? q.filter("metadata->>is_demo", "eq", "true")
+        : q.or("metadata->>is_demo.is.null,metadata->>is_demo.neq.true"))
       if (error) throw error
       return data
     },

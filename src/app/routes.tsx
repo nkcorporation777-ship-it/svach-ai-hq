@@ -15,6 +15,9 @@ import { IntakePage } from "@/features/intake/IntakePage"
 import { ProposalAcceptPage } from "@/features/proposals/ProposalAcceptPage"
 import { DeliveryPage } from "@/features/delivery/DeliveryPage"
 import { ProjectDetailPage } from "@/features/delivery/ProjectDetailPage"
+import { VoicePage } from "@/features/voice/VoicePage"
+import { CallDetailPage } from "@/features/voice/CallDetailPage"
+import { TryAgentPage } from "@/features/voice/TryAgentPage"
 import { Megaphone, Wallet, Headphones } from "lucide-react"
 
 /** One route per INFORMATION_ARCHITECTURE.md §1 sidebar item. */
@@ -30,6 +33,10 @@ export const routes: RouteObject[] = [
   {
     path: "/proposals/:token",
     element: <ProposalAcceptPage />,
+  },
+  {
+    path: "/try/:token",
+    element: <TryAgentPage />,
   },
   {
     element: (
@@ -48,6 +55,8 @@ export const routes: RouteObject[] = [
       { path: "/settings", element: <SettingsPage /> },
       { path: "/delivery", element: <DeliveryPage /> },
       { path: "/delivery/:id", element: <ProjectDetailPage /> },
+      { path: "/voice", element: <VoicePage /> },
+      { path: "/voice/calls/:id", element: <CallDetailPage /> },
       {
         path: "/marketing",
         element: (

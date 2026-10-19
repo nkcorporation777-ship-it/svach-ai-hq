@@ -197,3 +197,13 @@ Each shows: department name/icon, one-line description of what it will do (pulle
 the original agent workflow sketch), and "Coming in Phase N" — styled consistently with
 svach.in's own "Coming Soon" case-study/testimonial sections, not a blurred/teaser
 preview.
+
+## Voice Agents department (live)
+
+Sidebar entry **Voice Agents** (`/voice`), first section **Retell AI**. Tabs:
+Overview (usage/cost), **Live** (streaming call + workflow timeline), Calls,
+Appointments, **Campaigns** (outbound, owner-initiated), **Talk** (web call + public
+demo link), Agents. `/voice/calls/:id` is the call detail; `/try/:token` is the
+public, login-free demo page. Calls also appear on the matching lead's/client's
+Activity timeline, and appointments on their detail pages. Setup and agent prompts:
+`VOICE_AGENTS.md`.

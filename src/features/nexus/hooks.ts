@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { supabase } from "@/lib/supabase/client"
 import { logAudit } from "@/lib/audit"
+import { useDemoMode } from "@/features/voice/demoMode"
 
 /**
  * Clients joined with `client_contact_status` client-side — the view has no
@@ -8,16 +9,21 @@ import { logAudit } from "@/lib/audit"
  * by id rather than a single embedded select.
  */
 export function useClients() {
+  const demo = useDemoMode()
   return useQuery({
-    queryKey: ["clients"],
+    queryKey: ["clients", "list", demo],
     queryFn: async () => {
+      const clientsQuery = supabase
+        .from("clients")
+        .select("*, specialties(name)")
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
       const [{ data: clients, error: clientsError }, { data: status, error: statusError }] =
         await Promise.all([
-          supabase
-            .from("clients")
-            .select("*, specialties(name)")
-            .is("deleted_at", null)
-            .order("created_at", { ascending: false }),
+          // Voice-agent demo mode shows only synthetic demo clients (and hides them otherwise).
+          demo
+            ? clientsQuery.filter("metadata->>is_demo", "eq", "true")
+            : clientsQuery.or("metadata->>is_demo.is.null,metadata->>is_demo.neq.true"),
           supabase.from("client_contact_status").select("*"),
         ])
       if (clientsError) throw clientsError

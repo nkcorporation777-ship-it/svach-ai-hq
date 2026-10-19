@@ -397,3 +397,25 @@ Every table above has RLS enabled. V1 policies are intentionally simple:
   `SECURITY DEFINER` trigger so a user can never write their own role field directly —
   pattern and SQL in `SECURITY_STANDARDS.md` §16. Build this before a second real user
   exists (`SECURITY_POLICY.md`).
+
+## Voice Agents (added with the Voice Agents department)
+
+All RLS-protected with the single `auth.uid() is not null` policy; every write
+comes from a service-role Edge Function (see `VOICE_AGENTS.md`).
+
+| Table / view | Purpose |
+|---|---|
+| `voice_agents` | Retell agents known to HQ. `audience` = `internal` \| `demo` \| `client_patients`; optional `client_id`. |
+| `voice_calls` | One row per Retell call (idempotent on `retell_call_id`): status, duration, cost (cents), summary, sentiment, transcript, matched `lead_id`/`client_id`, the `activity_id` it wrote, `is_demo`. `client_patients` agents store counts/cost only. |
+| `voice_usage_daily` (view, `security_invoker`) | Per-day calls / minutes / cost / successful, per agent. |
+| `appointments` | Cal.com bookings (provider-neutral): attendee, `starts_at`, `timezone`, `status` (scheduled/rescheduled/cancelled/completed), `call_id`, `is_demo`. |
+| `appointment_reminders` | 24h / 1h reminders per appointment and channel (`email`, `whatsapp`); status pending → sending → sent/failed/skipped/cancelled. |
+| `voice_campaigns` | Four outbound campaigns (speed-to-lead, proposal follow-up, client check-in, appointment call): agent, from-number, on/off, daily cap, calling hours. |
+| `voice_call_requests` | Log of every "Call now" request — drives the daily cap and the 24-hour no-repeat rule. |
+| `voice_demo_links` / `voice_demo_link_uses` | The public "Try our agent" link (unguessable token, enabled flag, daily and per-visitor caps) and its usage log. |
+
+Also added: `leads.voice_opt_out` and `clients.voice_opt_out` (never call), and the
+functions `find_contact_by_phone(text)` / `find_contact_by_email(text)` used to
+match a caller to a record (last 10 digits / case-insensitive email).
+`voice_calls`, `appointments`, `appointment_reminders` and `activities` are in the
+`supabase_realtime` publication (Live Console).

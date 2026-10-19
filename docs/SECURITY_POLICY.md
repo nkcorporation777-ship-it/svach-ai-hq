@@ -180,3 +180,17 @@ non-negotiable regardless of team size. The full role capability matrix is genui
 deferred until there's a second real user. The data-sensitivity question is resolved
 (business-relationship level only) — revisit only if a future feature changes that
 boundary.
+
+## Addendum — Voice Agents (patient data stays out)
+
+Svach AI's own voice agents talk to our prospects and clients — business-relationship
+data, inside the boundary above. Calls for **clinic clients' patients** are NOT yet in
+scope: agents marked `client_patients` store counts and cost only (no numbers,
+summaries, transcripts or recordings) until this policy is revisited with signed
+BAAs/DPAs for Supabase, Retell, the email/WhatsApp providers and Cal.com, a retention
+rule, and a decision on whether patient records live in HQ at all. Retell holding
+HIPAA/SOC 2 Type II does not by itself make HQ compliant. Other controls: Retell and
+Cal.com webhooks are signature-verified; the Retell API key exists only as an Edge
+Function secret; the public demo link can only start the one demo agent and is capped
+per day and per visitor; outbound calls are owner-initiated and re-checked server-side
+(opt-out, calling hours, daily cap, 24-hour no-repeat, never demo contacts).
