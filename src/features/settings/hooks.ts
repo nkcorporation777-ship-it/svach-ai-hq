@@ -177,3 +177,35 @@ export function useUpdateBillingSettings() {
     },
   })
 }
+
+/** n8n automations (PRD §5.7): where HQ sends new leads for the "New Lead
+ * Alert" workflow. Single row, like billing_settings. */
+export function useN8nSettings() {
+  return useQuery({
+    queryKey: ["n8nSettings"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("n8n_settings").select("*").maybeSingle()
+      if (error) throw error
+      return data
+    },
+  })
+}
+
+export function useUpdateN8nSettings() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ newLeadWebhookUrl }: { newLeadWebhookUrl: string }) => {
+      const url = newLeadWebhookUrl.trim()
+      if (url && !/^https:\/\//i.test(url)) throw new Error("The webhook URL must start with https://")
+      const { error } = await supabase
+        .from("n8n_settings")
+        .update({ new_lead_webhook_url: url || null, updated_at: new Date().toISOString() })
+        .eq("id", true)
+      if (error) throw error
+      await logAudit({ action: "settings.n8n_settings_updated", entityType: "n8n_settings" })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["n8nSettings"] })
+    },
+  })
+}

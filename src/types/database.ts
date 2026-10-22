@@ -1033,6 +1033,24 @@ export type Database = {
         }
         Relationships: []
       }
+      n8n_settings: {
+        Row: {
+          id: boolean
+          new_lead_webhook_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: boolean
+          new_lead_webhook_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: boolean
+          new_lead_webhook_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ooa_recommendations: {
         Row: {
           created_at: string

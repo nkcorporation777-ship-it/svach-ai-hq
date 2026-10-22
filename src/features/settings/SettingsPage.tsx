@@ -20,6 +20,7 @@ import { EditEmailTemplateDialog } from "./EditEmailTemplateDialog"
 import { EditPricingTierDialog } from "./EditPricingTierDialog"
 import { SlaTargetsSettings } from "@/features/support/SlaTargetsSettings"
 import { MarketingSettings } from "@/features/marketing/MarketingSettings"
+import { N8nSettings } from "./N8nSettings"
 import { useLocation } from "react-router-dom"
 
 const STEP_LABELS: Record<string, string> = {
@@ -415,6 +416,8 @@ export function SettingsPage() {
       </Card>
 
       <SlaTargetsSettings />
+
+      <N8nSettings />
 
       <MarketingSettings />
 

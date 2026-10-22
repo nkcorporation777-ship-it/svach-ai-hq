@@ -473,3 +473,13 @@ Support (tickets the Owner logs; clients never log in):
 - `support_sla_targets` — per priority: `first_response_hours`, `resolution_hours` (calendar hours; defaults 1/8,
   4/24, 8/72, 24/168). Updating a target re-times that priority's open tickets (trigger).
 - RLS: one Owner-only policy per table, like the rest of HQ. Trigger functions have EXECUTE revoked from API roles.
+
+## n8n automations (PRD §5.7)
+
+- `n8n_settings` — single row (`id = true`): `new_lead_webhook_url`, the n8n "New Lead Alert" webhook. Owner-only RLS.
+- Trigger `trg_n8n_new_lead` (AFTER INSERT on `leads`, function `trigger_n8n_new_lead`, SECURITY DEFINER, EXECUTE
+  revoked from API roles) posts `{ event: "lead.created", lead_id }` through pg_net to the `n8n-dispatch` Edge Function
+  (same vault secret as the other triggers). Skips soft-deleted leads and demo leads (`metadata.is_demo`).
+- n8n writes nothing directly: runs are recorded by the `n8n-hq` Edge Function in `ooa_system_health_events` with
+  `source = 'n8n'` and `event_type` `workflow_succeeded` / `workflow_failed`; `n8n-dispatch` adds
+  `new_lead_alert_skipped` / `new_lead_alert_failed` when a lead couldn't be handed over.

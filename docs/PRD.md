@@ -192,6 +192,20 @@ per `AI_ARCHITECTURE.md`'s System Health lens design. The credential HQ uses to
 trigger/read these workflows is handled per `SECURITY_STANDARDS.md` — server-side
 only, inside an Edge Function, never shipped to the browser.
 
+**Built (2026-10-22)**, emailing the Owner over SMTP:
+- **Svach HQ: New Lead Alert** — the `trg_n8n_new_lead` trigger calls the
+  `n8n-dispatch` Edge Function, which forwards each new real lead (demo leads
+  skipped) to the n8n webhook set in Settings → n8n automations.
+- **Svach HQ: Follow-up Digest** — 8:30 AM IST daily; asks `n8n-hq`
+  (`followups_due`) for overdue / due-today follow-ups and emails one digest
+  (no email when nothing is due).
+- **Svach HQ: Failure Alerts** — the error workflow for every Svach HQ workflow
+  (including Social Posting); a failed run becomes a red `workflow_failed` event.
+
+Every run reports through `n8n-hq` (`report_run`). n8n never touches the database:
+all n8n↔HQ calls use one shared header secret, `x-hq-secret` (Edge secret
+`N8N_HQ_SECRET`, n8n credential "Svach HQ secret").
+
 ## 6. Non-Functional Requirements
 
 - **Design**: built against `DESIGN_SYSTEM.md`'s measured tokens (Fraunces/Inter type

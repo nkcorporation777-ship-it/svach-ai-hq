@@ -45,7 +45,9 @@ waiting on the client, a public ticket form, email-to-ticket, direct platform AP
 
 **Cross-cutting, every phase**: OOA's System Health / Business Insights lenses grow
 with each new department's data; the set of approvable action types grows one at a
-time; RBAC and audit logging are foundational from Phase 1, never retrofitted.
+time; RBAC and audit logging are foundational from Phase 1, never retrofitted. The two
+Phase 1 n8n workflows (new-lead alert, follow-up digest) plus a shared failure-alert
+workflow are built and report every run into System Health (`PRD.md` §5.7).
 
 ---
 

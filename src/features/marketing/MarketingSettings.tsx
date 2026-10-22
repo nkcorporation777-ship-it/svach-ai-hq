@@ -56,7 +56,7 @@ export function MarketingSettings() {
             <li>
               HQ POSTs <code>{"{ event: \"social_post.due\", post: { id, title, body, platforms, media_urls, link_url, campaign, scheduled_at } }"}</code>{" "}
               with an <code>x-hq-secret</code> header. Check it matches the secret you set as{" "}
-              <code>N8N_MARKETING_SECRET</code> in Supabase.
+              <code>N8N_HQ_SECRET</code> in Supabase.
             </li>
             <li>Answer with any 2xx straight away. Anything else counts as a failed hand-off (retried up to 3 times).</li>
             <li>

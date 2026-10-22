@@ -4,7 +4,7 @@
 // the Owner had typed them in.
 //
 // Server-to-server (verify_jwt = false); auth is the shared `x-hq-secret`
-// header (Edge secret N8N_MARKETING_SECRET) that social-publish also sends.
+// header (Edge secret N8N_HQ_SECRET) that social-publish also sends.
 //
 // A post that went out on some platforms but not others comes back as
 // "published" with `error` naming the ones that failed.
@@ -29,7 +29,7 @@ function timingSafeEqual(a: string, b: string) {
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json(405, { error: "POST only" })
-  const expected = Deno.env.get("N8N_MARKETING_SECRET")
+  const expected = Deno.env.get("N8N_HQ_SECRET")
   const given = req.headers.get("x-hq-secret") ?? ""
   if (!expected || !timingSafeEqual(given, expected)) return json(401, { error: "Unauthorized" })
 

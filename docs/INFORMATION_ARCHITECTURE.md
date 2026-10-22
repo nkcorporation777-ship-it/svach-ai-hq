@@ -51,7 +51,9 @@ never a fake preview or placeholder data.
 The first screen after login. Two lenses, one page:
 
 ### 2.1 System Health (lens 1)
-- Connected systems status strip (Supabase, n8n, any live integrations) — green/amber/red
+- Connected systems status strip (Supabase, n8n, any live integrations) — green/amber/red.
+  The n8n line shows the newest reported run (OK / failed, which workflow, when) or
+  "No runs yet"; the New-lead webhook URL is set in Settings → n8n automations.
 - Recent workflow runs (from n8n): succeeded / failed / retried, with timestamps
 - Failure/retry alerts, if any — link to the relevant n8n execution
 

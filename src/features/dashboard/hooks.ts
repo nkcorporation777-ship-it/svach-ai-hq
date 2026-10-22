@@ -107,3 +107,23 @@ export function useDismissRecommendation() {
     },
   })
 }
+
+/** The newest n8n workflow run (succeeded or failed) reported through n8n-hq,
+ * for System Health's n8n line. null = no run reported yet. */
+export function useLatestN8nRun() {
+  return useQuery({
+    queryKey: ["systemHealthEvents", "n8n-latest-run"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ooa_system_health_events")
+        .select("event_type, detail, created_at")
+        .eq("source", "n8n")
+        .in("event_type", ["workflow_succeeded", "workflow_failed"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (error) throw error
+      return data
+    },
+  })
+}

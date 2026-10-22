@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom"
-import { CheckCircle2, User, Bot, Cog, AlertTriangle } from "lucide-react"
+import { CheckCircle2, CircleDashed, User, Bot, Cog, AlertTriangle } from "lucide-react"
 import { Card } from "@/components/shared/Card"
 import { StatTile } from "@/components/shared/StatTile"
 import { ActionQueueCard } from "@/components/shared/ActionQueueCard"
@@ -14,6 +14,7 @@ import {
   useApproveRecommendation,
   useDismissRecommendation,
   useAgentActivity,
+  useLatestN8nRun,
 } from "./hooks"
 
 const SEVERITY_COLOR: Record<string, string> = {
@@ -31,16 +32,17 @@ function formatAction(action: string) {
 }
 
 /**
- * OOA Home — INFORMATION_ARCHITECTURE.md §2. `ooa_recommendations` and
- * `ooa_system_health_events` are genuinely empty until n8n/Hermes exist
- * (PRD.md §5.7, §8) — honest empty states, not fabricated data, per
- * UI_UX_GUIDELINES.md. Stats reuse useLeads()/useClients() rather than new
+ * OOA Home — INFORMATION_ARCHITECTURE.md §2. `ooa_system_health_events` is
+ * fed by HQ's own webhooks and by n8n runs (n8n-hq report_run, PRD.md §5.7);
+ * `ooa_recommendations` stays mostly empty until Hermes exists (§8) — honest
+ * empty states, not fabricated data, per UI_UX_GUIDELINES.md. Stats reuse useLeads()/useClients() rather than new
  * queries — the same data Sales/Nexus already fetch.
  */
 export function DashboardPage() {
   const { data: healthEvents, isLoading: healthLoading } = useSystemHealthEvents()
   const { data: recommendations, isLoading: recsLoading } = useOoaRecommendations()
   const { data: activity, isLoading: activityLoading } = useAgentActivity()
+  const { data: latestN8nRun } = useLatestN8nRun()
   const { data: leads } = useLeads()
   const { data: clients } = useClients()
   const { data: followUps } = useAllFollowUps()
@@ -145,16 +147,32 @@ export function DashboardPage() {
             <span className="text-foreground">Supabase</span>
             <span className="text-muted-foreground">Connected</span>
           </div>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+            {!latestN8nRun ? (
+              <CircleDashed className="size-4 text-muted-foreground" />
+            ) : latestN8nRun.event_type === "workflow_failed" ? (
+              <AlertTriangle className="size-4 text-status-error" />
+            ) : (
+              <CheckCircle2 className="size-4 text-status-success" />
+            )}
+            <span className="text-foreground">n8n</span>
+            <span className={latestN8nRun?.event_type === "workflow_failed" ? "text-status-error" : "text-muted-foreground"}>
+              {!latestN8nRun
+                ? "No runs yet"
+                : `${latestN8nRun.event_type === "workflow_failed" ? "Last run failed" : "Last run OK"} · ${
+                    (latestN8nRun.detail as { workflow?: string } | null)?.workflow ?? "workflow"
+                  } · ${new Date(latestN8nRun.created_at).toLocaleString()}`}
+            </span>
+          </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            n8n and Hermes aren't connected yet (PRD.md §8) — no status shown until
-            they actually report in.
+            Hermes isn't connected yet (PRD.md §8) — no status shown until it reports in.
           </p>
 
           {healthLoading ? (
             <p className="mt-4 text-sm text-muted-foreground">Loading…</p>
           ) : !healthEvents || healthEvents.length === 0 ? (
             <p className="mt-4 text-sm text-muted-foreground">
-              No events yet — populates once the Phase 1 n8n workflows are live.
+              No events yet.
             </p>
           ) : (
             <div className="mt-4 flex flex-col gap-2">

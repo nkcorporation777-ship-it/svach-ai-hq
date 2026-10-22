@@ -5,7 +5,7 @@
 // onboarding_trigger_secret, Edge secret: ONBOARDING_TRIGGER_SECRET).
 //
 // The n8n webhook URL lives in marketing_settings (Settings → Marketing). Each
-// request carries `x-hq-secret` (Edge secret N8N_MARKETING_SECRET) so the n8n
+// request carries `x-hq-secret` (Edge secret N8N_HQ_SECRET) so the n8n
 // workflow can check it really came from HQ. A post n8n accepts becomes
 // `handed_off`; n8n then reports the outcome to social-callback. A failed
 // hand-off is retried on the next runs, up to MAX_ATTEMPTS.
@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
       summary.waiting_for_webhook = due.length
       return Response.json(summary)
     }
-    const hqSecret = Deno.env.get("N8N_MARKETING_SECRET") ?? ""
+    const hqSecret = Deno.env.get("N8N_HQ_SECRET") ?? ""
 
     for (const post of due) {
       // Claim it so an overlapping run can't hand it off twice.
