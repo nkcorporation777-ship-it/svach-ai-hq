@@ -274,3 +274,21 @@ foundation for V1, not anticipating every future feature.
 - **Demo mode is a display filter**, not isolation; synthetic data only.
 - Browser web calls use Retell's `RetellWebClient` with a server-minted token
   (deprecated upstream, removal in SDK 4.0 — pinned to ^3).
+
+### Voice callers: one record per clinic, review instead of duplicates
+
+A caller is matched by HQ record, phone, email, then organisation name (colleagues at one clinic share a
+record). A first-time caller becomes a Lead-column lead; someone who says they're a client but isn't found
+is flagged "Needs review" with no lead, and a new lead that resembles an existing clinic is flagged as a
+possible duplicate. Live lookup lets the agent greet known callers; it discloses only a status (in-call) or
+a first name and clinic (caller-ID match). Chosen over auto-merging fuzzy names, which could attach a call to
+the wrong clinic.
+
+### Finance v1: manual payments, gateway later
+
+Payments are recorded by hand; the PayPal (or other gateway) integration is deferred. The schema keeps a gateway-ready
+seam (`payments.provider`, `provider_ref`) and invoices carry a public token page that a "Pay now" button can join
+later. Invoices use a single GST percentage taken from Billing settings (like proposals), not a CGST/SGST/IGST split —
+revisit if GST-registered invoicing is required. Sending an invoice is an explicit, confirmed action in the UI.
+Recording a deposit payment does not yet tick the "Deposit received" onboarding step automatically (that step stays a
+manual tick); wiring the two together is a follow-up.

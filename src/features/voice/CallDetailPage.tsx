@@ -1,10 +1,149 @@
+import { useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import { ArrowLeft, ExternalLink } from "lucide-react"
 import { GlowCard } from "@/components/shared/GlowCard"
+import { Button } from "@/components/ui/button"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { OutcomeBadge, SentimentBadge } from "./CallBadges"
 import { CallWorkflowTimeline } from "./CallWorkflowTimeline"
-import { formatCents, formatMinutes, useVoiceCall } from "./hooks"
+import {
+  formatCents,
+  formatMinutes,
+  useClientsLite,
+  useLeadsLite,
+  useResolveReview,
+  useVoiceCall,
+} from "./hooks"
+
+interface ReviewCandidate {
+  entity_type: "lead" | "client"
+  entity_id: string
+  practice_name: string
+}
+
+/** A call HQ couldn't settle on its own: it said "existing client" without a match,
+ * or a new lead was created that looks like an existing record. */
+function ReviewCard({
+  callId,
+  reason,
+  candidates,
+  linked,
+  isDemo,
+}: {
+  callId: string
+  reason: string | null
+  candidates: ReviewCandidate[]
+  linked: boolean
+  isDemo: boolean
+}) {
+  const resolve = useResolveReview()
+  const { data: clients } = useClientsLite(isDemo)
+  const { data: leads } = useLeadsLite(isDemo)
+  const [picked, setPicked] = useState<string>("")
+
+  const parse = (v: string) => {
+    const [type, id] = v.split(":")
+    return type && id ? { type: type as "lead" | "client", id } : undefined
+  }
+  const pickedLabel = (() => {
+    const t = parse(picked)
+    if (!t) return null
+    return t.type === "client"
+      ? clients?.find((c) => c.id === t.id)?.practice_name
+      : leads?.find((l) => l.id === t.id)?.practice_name
+  })()
+
+  return (
+    <GlowCard tone="amber">
+      <h2 className="font-display text-base font-semibold">Needs your review</h2>
+      <p className="mt-2 text-sm text-muted-foreground">{reason ?? "HQ couldn't settle this call automatically."}</p>
+
+      {candidates.length > 0 && (
+        <div className="mt-4">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Similar records</p>
+          <ul className="mt-2 flex flex-col gap-1.5">
+            {candidates.map((c) => (
+              <li key={`${c.entity_type}:${c.entity_id}`} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                <Link
+                  className="text-brand-cyan hover:underline"
+                  to={c.entity_type === "client" ? `/nexus/${c.entity_id}` : `/sales/${c.entity_id}`}
+                >
+                  {c.practice_name} · {c.entity_type}
+                </Link>
+                {!linked && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={resolve.isPending}
+                    onClick={() => resolve.mutate({ callId, target: { type: c.entity_type, id: c.entity_id } })}
+                  >
+                    Link this call
+                  </Button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {!linked && (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <Select value={picked} onValueChange={setPicked}>
+            <SelectTrigger className="w-64">
+              <SelectValue>{pickedLabel ?? "Link to another record…"}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>Clients</SelectLabel>
+                {clients?.map((c) => (
+                  <SelectItem key={c.id} value={`client:${c.id}`}>
+                    {c.practice_name}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+              <SelectGroup>
+                <SelectLabel>Leads</SelectLabel>
+                {leads?.map((l) => (
+                  <SelectItem key={l.id} value={`lead:${l.id}`}>
+                    {l.practice_name}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+          <Button
+            size="sm"
+            disabled={!parse(picked) || resolve.isPending}
+            onClick={() => resolve.mutate({ callId, target: parse(picked) })}
+          >
+            Link call
+          </Button>
+        </div>
+      )}
+
+      <div className="mt-4">
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={resolve.isPending}
+          onClick={() => resolve.mutate({ callId })}
+        >
+          {linked ? "Not a duplicate — dismiss" : "Dismiss without linking"}
+        </Button>
+      </div>
+      {resolve.isError && <p className="mt-2 text-xs text-status-error">{resolve.error.message}</p>}
+    </GlowCard>
+  )
+}
 
 function TranscriptView({ transcript }: { transcript: string }) {
   const lines = transcript.split("\n").filter((l) => l.trim())
@@ -84,6 +223,15 @@ export function CallDetailPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="flex flex-col gap-6 lg:col-span-2">
+          {call.needs_review && (
+            <ReviewCard
+              callId={call.id}
+              reason={call.review_reason}
+              candidates={(Array.isArray(call.review_candidates) ? call.review_candidates : []) as unknown as ReviewCandidate[]}
+              linked={!!(call.lead_id || call.client_id)}
+              isDemo={call.is_demo}
+            />
+          )}
           <GlowCard tone="cyan">
             <h2 className="font-display text-base font-semibold">Summary</h2>
             <p className="mt-3 text-sm">{call.summary ?? "No summary yet — the call may still be in progress."}</p>

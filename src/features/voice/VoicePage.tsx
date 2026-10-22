@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { getFunctionErrorMessage } from "@/lib/functionsError"
 import { setDemoMode, useDemoMode } from "./demoMode"
-import { useDemoData, useSyncRetell, useVoiceStatus } from "./hooks"
+import { useDemoData, useNeedsReviewCount, useSyncRetell, useVoiceStatus } from "./hooks"
 import { OverviewTab } from "./OverviewTab"
 import { CallsTab } from "./CallsTab"
 import { AgentsTab } from "./AgentsTab"
@@ -43,6 +43,7 @@ export function VoicePage() {
   const tab = (TABS.find((t) => t.id === params.get("tab"))?.id ?? "overview") as TabId
   const demo = useDemoMode()
   const { data: status } = useVoiceStatus()
+  const { data: reviewCount } = useNeedsReviewCount()
   const sync = useSyncRetell()
   const demoData = useDemoData()
   const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string } | null>(null)
@@ -163,6 +164,14 @@ export function VoicePage() {
             )}
           >
             {t.label}
+            {t.id === "calls" && !!reviewCount && (
+              <span
+                title="Calls that need your review"
+                className="ml-2 rounded-[var(--radius-pill)] border border-status-warning/40 bg-status-warning/10 px-1.5 py-0.5 text-xs text-status-warning"
+              >
+                {reviewCount}
+              </span>
+            )}
           </button>
         ))}
       </nav>

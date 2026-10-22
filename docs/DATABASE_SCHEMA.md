@@ -419,3 +419,30 @@ functions `find_contact_by_phone(text)` / `find_contact_by_email(text)` used to
 match a caller to a record (last 10 digits / case-insensitive email).
 `voice_calls`, `appointments`, `appointment_reminders` and `activities` are in the
 `supabase_realtime` publication (Live Console).
+
+### Voice matching and review (added with the no-duplicate-leads change)
+
+- `normalize_org(text)` (immutable): lowercases, strips punctuation and words like pvt / ltd / llp / inc.
+- `find_contact_by_org(p_org text, p_demo boolean default false)`: exact match on the normalised
+  `practice_name`; clients win over leads; names under 4 characters never match; demo and real
+  records are never mixed (`metadata.is_demo`).
+- `find_org_candidates(p_org, p_demo)`: up to 5 looser matches (one name contains the other) for the review queue.
+- `voice_calls.needs_review boolean`, `review_reason text`, `review_candidates jsonb` (partial index on
+  `needs_review`). `voice_agents.tracked boolean` is the allow-list of connected Retell agents.
+
+## Finance (Phase 3)
+
+- `invoices` — one per bill. `invoice_number` (INV-YYYY-NNNN, assigned by trigger from `invoice_number_seq`, never
+  reused), `client_id` (nullable: can bill someone who is not a client), `proposal_id`, `kind` (standard | deposit),
+  `status` (draft | sent | partially_paid | paid | void), bill-to fields, `issue_date`/`due_date`, `subtotal`,
+  `gst_percent`, `gst_amount`, `total`, `amount_paid` (maintained by trigger), `token` (unguessable, for the
+  client's invoice page), `sent_at`, `sent_to_email`, `viewed_at`, `paid_at`, `voided_at`. "Overdue" is not stored:
+  a sent / part-paid invoice past `due_date` is shown as overdue.
+- `invoice_items` — line items (description, quantity, unit_price, amount, order_index); deleted with the invoice.
+- `payments` — money received against an invoice (`amount > 0`, `paid_on`, `method`, `reference`). `provider` /
+  `provider_ref` are for a future gateway (unique together when set) so a webhook can't record the same payment twice.
+  Trigger `sync_invoice_payments` rolls payments up into `invoices.amount_paid`, `status` and `paid_at`, and refuses
+  payments on draft or void invoices.
+- `expenses` — `spent_on`, `category`, `vendor`, `description`, `amount` (incl. GST), optional `client_id`.
+- `billing_settings` gained `invoice_from` (the "from" block on invoices) and `payment_instructions` (how clients pay).
+- RLS: one Owner-only policy per table, like the rest of HQ.

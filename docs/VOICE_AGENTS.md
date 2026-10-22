@@ -81,11 +81,55 @@ campaign, switch it on.
 | `caller_phone` | text | A callback number if different from the one they called from. |
 | `interest_level` | enum: low / medium / high | How interested in Svach AI's services they sounded. |
 | `hot_lead` | boolean | True only if they want to buy or start soon (asked about price/timeline and agreed to a next step). Triggers an immediate email to you. |
+| `says_existing_client` | boolean | True if the caller said they are already a client of Svach AI (or that their clinic is). HQ never trusts this on its own — it only decides what happens when no record matches (see Section 3A). |
 | `callback_requested` | boolean | True if they asked for a human to call them back. For existing clients this creates a follow-up for the next morning. |
+
+Dynamic variables HQ passes on **inbound phone calls** (from the live lookup, Section 3A):
+`{{caller_status}}` (`client` / `lead` / `new`), `{{caller_name}}`, `{{caller_org}}`.
 
 Dynamic variables HQ passes on outbound calls: `{{contact_name}}`,
 `{{practice_name}}`, `{{campaign}}`, plus `{{proposal_sent_date}}` (proposal
 follow-up) and `{{appointment_time}}` (appointment calls).
+
+## 3A. Recognising callers (no duplicate leads)
+
+HQ decides who a caller is in this order, on every call and on every Cal.com booking:
+**HQ record that started the call -> phone number -> email -> organisation name.** The
+organisation match means a colleague at a known clinic (different number, different
+email) lands on the clinic's record instead of creating a new lead. Names are compared
+after removing capitals, punctuation and words like "Pvt Ltd".
+
+What happens after the call:
+
+| Situation | Result |
+|---|---|
+| Matched a client or lead | The call and summary go on that record. A call from a colleague (matched by clinic name only) also adds a note saying who called. **No new lead.** |
+| First-time caller, nothing similar in HQ | A new lead in the **Lead** column, source "Voice Agent". |
+| First-time caller, but a similar clinic name exists | New lead created **and** the call is flagged **Needs review** ("check this isn't a duplicate"). |
+| Says they are an existing client, nothing matches | **No lead.** The call is flagged **Needs review** with close matches suggested. Open it under Voice Agents -> Calls -> Needs review and link it to the right record (or dismiss). |
+
+Demo calls only match demo records, and real calls only real ones.
+
+**Live lookup (the agent recognises callers while it talks)** — Edge Function
+`voice-lookup`, signed by Retell like the webhook:
+
+1. **Inbound-call webhook** (phone numbers only): in Retell open the phone number ->
+   *Inbound call webhook* and set it to
+   `https://fsfzenkycnoxearenpdp.supabase.co/functions/v1/voice-lookup`.
+   HQ answers before the agent speaks with `caller_status`, `caller_name`,
+   `caller_org` (matched by the caller-ID number). Anyone can spoof caller ID, so the
+   prompt below only greets by name and never reads out any other detail.
+2. **Custom function** on the agent: name `lookup_contact`, method POST, the same URL,
+   parameters `email` (string, optional) and `organization` (string, optional), use
+   the **default payload** (not "args only"). HQ answers only `{"status": "client" | "lead" | "new"}`
+   — never a name or record — so it can't be used to find out who your clients are.
+3. Both only answer agents you connected whose *Serves* is **Svach AI**. Demo agents and
+   "Client's patients" agents always get "new".
+4. Web calls have no caller ID, so for them the agent asks the questions and uses the
+   custom function.
+
+If the lookup is unreachable the agent simply treats the caller as new and asks the
+questions — a call is never blocked.
 
 ## 3. The agents
 
@@ -122,7 +166,17 @@ GOAL: answer the caller's questions, find out what their practice needs, and boo
 
 FLOW
 1. Greet: "Thanks for calling Svach AI — I'm the virtual assistant, and this call may
-   be recorded. How can I help?"
+   be recorded."
+   - If {{caller_status}} is "client" or "lead" and {{caller_name}} is not empty, add:
+     "Am I speaking with {{caller_name}}?" (use the name only; never read out any
+     other detail until they confirm). If they say no, treat them as a new caller.
+   - Otherwise ask: "Are you already a client of Svach AI, or is this your first time
+     contacting us?" Remember the answer for says_existing_client.
+   Then ask how you can help.
+1b. Whoever they are, get their name, clinic name, email and phone (spell the email
+   back). If they say they're an existing client — or give an email or clinic name — call
+   lookup_contact with it. If it says "client", welcome them back; if "new", don't argue:
+   say the team will look into it, and carry on helping.
 2. Learn: who they are, their practice and specialty, and the problem (missed calls,
    manual reminders, front-desk load). Ask roughly how many calls they miss.
 3. Explain briefly: we build a voice receptionist that answers every call, books and

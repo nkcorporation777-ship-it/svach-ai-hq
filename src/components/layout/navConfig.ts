@@ -49,13 +49,7 @@ export const departmentNav: NavItem[] = [
     status: "locked",
     phaseTag: "Phase 4",
   },
-  {
-    label: "Finance",
-    path: "/finance",
-    icon: Wallet,
-    status: "locked",
-    phaseTag: "Phase 3",
-  },
+  { label: "Finance", path: "/finance", icon: Wallet, status: "live" },
   {
     label: "Support",
     path: "/support",

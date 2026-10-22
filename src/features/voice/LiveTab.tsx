@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import { OutcomeBadge } from "./CallBadges"
 import { CallWorkflowTimeline } from "./CallWorkflowTimeline"
 import { useDemoMode } from "./demoMode"
-import { formatMinutes, useLiveCalls, useSimulateInbound, useVoiceCall } from "./hooks"
+import { formatMinutes, useLiveCalls, useSimulateInbound, useVoiceCall, type InboundScenario } from "./hooks"
 
 function LiveTranscript({ transcript }: { transcript: string | null }) {
   const lines = (transcript ?? "").split("\n").filter((l) => l.trim())
@@ -53,11 +53,11 @@ export function LiveTab() {
   const liveRow = calls?.find((c) => c.id === selectedId) ?? selected
   const isLive = liveRow?.call_status === "ongoing" || liveRow?.call_status === "registered"
 
-  async function startSim() {
+  async function startSim(scenario: InboundScenario = "inbound_booking") {
     setError(null)
     setPicked(null)
     try {
-      await simulate.mutateAsync()
+      await simulate.mutateAsync(scenario)
     } catch (err) {
       setError(await getFunctionErrorMessage(err, "Couldn't start the simulation."))
     }
@@ -67,10 +67,18 @@ export function LiveTab() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center gap-3">
         {demo ? (
-          <Button onClick={startSim} disabled={simulate.isPending}>
-            <PhoneIncoming className="size-4" />
-            Simulate an incoming call
-          </Button>
+          <>
+            <Button onClick={() => startSim("inbound_booking")} disabled={simulate.isPending}>
+              <PhoneIncoming className="size-4" />
+              Simulate an incoming call
+            </Button>
+            <Button variant="outline" onClick={() => startSim("inbound_colleague")} disabled={simulate.isPending}>
+              Existing client's colleague calls
+            </Button>
+            <Button variant="outline" onClick={() => startSim("inbound_unmatched")} disabled={simulate.isPending}>
+              Caller claims to be a client (not found)
+            </Button>
+          </>
         ) : (
           <p className="text-sm text-muted-foreground">
             Real calls appear here as they happen. Switch on Demo mode to play a simulated call.

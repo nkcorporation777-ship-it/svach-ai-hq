@@ -140,6 +140,8 @@ export function useUpdateBillingSettings() {
       premiumRateMin,
       premiumRateMax,
       gstPercent,
+      invoiceFrom,
+      paymentInstructions,
     }: {
       id: string
       hourlyRateMin: number | null
@@ -147,6 +149,8 @@ export function useUpdateBillingSettings() {
       premiumRateMin: number | null
       premiumRateMax: number | null
       gstPercent: number | null
+      invoiceFrom?: string | null
+      paymentInstructions?: string | null
     }) => {
       const { error } = await supabase
         .from("billing_settings")
@@ -156,6 +160,8 @@ export function useUpdateBillingSettings() {
           premium_rate_min: premiumRateMin,
           premium_rate_max: premiumRateMax,
           gst_percent: gstPercent,
+          ...(invoiceFrom !== undefined ? { invoice_from: invoiceFrom } : {}),
+          ...(paymentInstructions !== undefined ? { payment_instructions: paymentInstructions } : {}),
           updated_at: new Date().toISOString(),
         })
         .eq("id", id)

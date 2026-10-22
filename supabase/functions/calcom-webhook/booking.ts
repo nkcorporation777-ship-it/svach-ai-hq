@@ -30,14 +30,29 @@ export function formatWhen(iso: string, tz: string | null) {
   }
 }
 
-async function findContact(admin: Admin, email: string | null, phone: string | null) {
+async function findContact(
+  admin: Admin,
+  email: string | null,
+  phone: string | null,
+  organisation: string | null,
+  demo: boolean,
+): Promise<{ type: "lead" | "client"; id: string; viaOrganisation: boolean } | null> {
   if (email) {
     const { data } = await admin.rpc("find_contact_by_email", { p_email: email })
-    if (data?.[0]) return { type: data[0].entity_type as "lead" | "client", id: data[0].entity_id as string }
+    if (data?.[0])
+      return { type: data[0].entity_type as "lead" | "client", id: data[0].entity_id as string, viaOrganisation: false }
   }
   if (phone) {
     const { data } = await admin.rpc("find_contact_by_phone", { p_phone: phone })
-    if (data?.[0]) return { type: data[0].entity_type as "lead" | "client", id: data[0].entity_id as string }
+    if (data?.[0])
+      return { type: data[0].entity_type as "lead" | "client", id: data[0].entity_id as string, viaOrganisation: false }
+  }
+  // A colleague at a known clinic booking with their own email: same company,
+  // so it lands on the clinic's record instead of creating a duplicate lead.
+  if (organisation) {
+    const { data } = await admin.rpc("find_contact_by_org", { p_org: organisation, p_demo: demo })
+    if (data?.[0])
+      return { type: data[0].entity_type as "lead" | "client", id: data[0].entity_id as string, viaOrganisation: true }
   }
   return null
 }
@@ -199,13 +214,18 @@ export async function processBooking(
 
   // ── Created / rescheduled ───────────────────────────────────────────────
   let contact: { type: "lead" | "client"; id: string } | null = null
+  let matchedByOrganisation = false
+  const demoFlag = !!opts.forceDemo || p.metadata?.is_demo === true
   if (previous?.client_id) contact = { type: "client", id: previous.client_id }
   else if (previous?.lead_id) contact = { type: "lead", id: previous.lead_id }
   else if (existing?.client_id) contact = { type: "client", id: existing.client_id }
   else if (existing?.lead_id) contact = { type: "lead", id: existing.lead_id }
-  else contact = await findContact(admin, email, phone)
+  else {
+    const found = await findContact(admin, email, phone, practiceFromResponses(responses), demoFlag)
+    contact = found ? { type: found.type, id: found.id } : null
+    matchedByOrganisation = !!found?.viaOrganisation
+  }
 
-  const demoFlag = !!opts.forceDemo || p.metadata?.is_demo === true
   if (!contact && (email || phone)) {
     const { data: lead, error: leadError } = await admin
       .from("leads")
@@ -215,7 +235,9 @@ export async function processBooking(
         contact_email: email,
         contact_phone: phone,
         source: demoFlag ? "Demo Call" : "Cal.com",
-        stage: "discovery_booked",
+        // A brand-new person starts in the Lead column ("new lead captured");
+        // the appointment is on their record and the Owner moves them on.
+        stage: "lead",
         metadata: { created_by: "calcom_webhook", is_demo: demoFlag },
       })
       .select("id")
@@ -328,7 +350,7 @@ export async function processBooking(
       entity_id: contact.id,
       type: "meeting",
       content: isNew
-        ? `Appointment booked for ${formatWhen(p.startTime, tz)}.`
+        ? `Appointment booked for ${formatWhen(p.startTime, tz)}${matchedByOrganisation ? ` by ${[name, email].filter(Boolean).join(", ") || "a colleague"} (matched by company name)` : ""}.`
         : `Appointment moved to ${formatWhen(p.startTime, tz)}.`,
       created_by: null,
       metadata: { source: "calcom", appointment_id: appt.id, starts_at: p.startTime, call_id: callId },

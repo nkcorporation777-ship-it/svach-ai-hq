@@ -207,3 +207,10 @@ demo link), Agents. `/voice/calls/:id` is the call detail; `/try/:token` is the
 public, login-free demo page. Calls also appear on the matching lead's/client's
 Activity timeline, and appointments on their detail pages. Setup and agent prompts:
 `VOICE_AGENTS.md`.
+
+## Finance (live)
+
+Sidebar "Finance" is now live (it was locked as "Coming in Phase 3"). Tabs: **Overview** (collected / spent this month,
+outstanding, overdue, six-month chart, top payers), **Invoices** (list, filter, new), **Expenses**. Invoice page
+`/finance/invoices/:id`: line items, totals, payments, send / resend by email, copy link, record payment, void or delete
+a draft. The client-facing page is the public `/invoices/:token` (like `/proposals/:token`).

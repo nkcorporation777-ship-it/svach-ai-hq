@@ -7,6 +7,7 @@ import { Card } from "@/components/shared/Card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { formatCurrencyRange } from "@/lib/format"
 import type { Tables } from "@/types/database"
 import {
@@ -57,6 +58,8 @@ export function SettingsPage() {
     premiumRateMin: "",
     premiumRateMax: "",
     gstPercent: "",
+    invoiceFrom: "",
+    paymentInstructions: "",
   })
 
   useEffect(() => {
@@ -67,6 +70,8 @@ export function SettingsPage() {
         premiumRateMin: billingSettings.premium_rate_min?.toString() ?? "",
         premiumRateMax: billingSettings.premium_rate_max?.toString() ?? "",
         gstPercent: billingSettings.gst_percent?.toString() ?? "",
+        invoiceFrom: billingSettings.invoice_from ?? "",
+        paymentInstructions: billingSettings.payment_instructions ?? "",
       })
     }
   }, [billingSettings])
@@ -259,6 +264,8 @@ export function SettingsPage() {
                 ? Number(billingForm.premiumRateMax)
                 : null,
               gstPercent: billingForm.gstPercent ? Number(billingForm.gstPercent) : null,
+              invoiceFrom: billingForm.invoiceFrom.trim() || null,
+              paymentInstructions: billingForm.paymentInstructions.trim() || null,
             })
           }}
         >
@@ -355,6 +362,32 @@ export function SettingsPage() {
               value={billingForm.gstPercent}
               onChange={(e) => setBillingForm((f) => ({ ...f, gstPercent: e.target.value }))}
             />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="invoice_from">Invoice "from" details</Label>
+            <Textarea
+              id="invoice_from"
+              rows={3}
+              placeholder={"Svach AI\nAddress\nGSTIN"}
+              value={billingForm.invoiceFrom}
+              onChange={(e) => setBillingForm((f) => ({ ...f, invoiceFrom: e.target.value }))}
+            />
+            <p className="text-xs text-muted-foreground">Shown at the top of every invoice (name, address, GSTIN).</p>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="payment_instructions">How clients should pay</Label>
+            <Textarea
+              id="payment_instructions"
+              rows={3}
+              placeholder={"UPI: …\nBank: account name, number, IFSC"}
+              value={billingForm.paymentInstructions}
+              onChange={(e) => setBillingForm((f) => ({ ...f, paymentInstructions: e.target.value }))}
+            />
+            <p className="text-xs text-muted-foreground">
+              Shown on the invoice page the client opens. You record each payment by hand in Finance.
+            </p>
           </div>
 
           <Button

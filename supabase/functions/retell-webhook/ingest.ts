@@ -33,6 +33,8 @@ export interface IngestResult {
   callerLabel: string | null
   summary: string | null
   isDemo: boolean
+  /** Flagged for the Owner: unmatched "existing client" claim, or a new lead that resembles an existing record. */
+  needsReview: boolean
 }
 
 function truthy(v: unknown) {
@@ -100,17 +102,18 @@ async function matchContact(
   call: RetellCall,
   row: Record<string, any>,
   custom: Record<string, any>,
-): Promise<{ type: "lead" | "client"; id: string } | null> {
+  isDemo: boolean,
+): Promise<{ type: "lead" | "client"; id: string; via: "metadata" | "phone" | "email" | "organisation" } | null> {
   const meta = call.metadata ?? {}
 
   // 1. HQ started this call from a record (metadata set by our own server).
   if (meta.client_id) {
     const { data } = await admin.from("clients").select("id").eq("id", meta.client_id).maybeSingle()
-    if (data) return { type: "client", id: data.id }
+    if (data) return { type: "client", id: data.id, via: "metadata" }
   }
   if (meta.lead_id) {
     const { data } = await admin.from("leads").select("id").eq("id", meta.lead_id).maybeSingle()
-    if (data) return { type: "lead", id: data.id }
+    if (data) return { type: "lead", id: data.id, via: "metadata" }
   }
 
   // 2. The other party's phone number (phone calls only).
@@ -118,18 +121,25 @@ async function matchContact(
     const other = row.direction === "outbound" ? call.to_number : call.from_number
     if (other) {
       const { data } = await admin.rpc("find_contact_by_phone", { p_phone: other })
-      if (data?.[0]) return { type: data[0].entity_type, id: data[0].entity_id }
+      if (data?.[0]) return { type: data[0].entity_type, id: data[0].entity_id, via: "phone" }
     }
   }
 
   // 3. Contact details the agent collected during the call.
   if (custom.caller_email) {
     const { data } = await admin.rpc("find_contact_by_email", { p_email: String(custom.caller_email) })
-    if (data?.[0]) return { type: data[0].entity_type, id: data[0].entity_id }
+    if (data?.[0]) return { type: data[0].entity_type, id: data[0].entity_id, via: "email" }
   }
   if (custom.caller_phone) {
     const { data } = await admin.rpc("find_contact_by_phone", { p_phone: String(custom.caller_phone) })
-    if (data?.[0]) return { type: data[0].entity_type, id: data[0].entity_id }
+    if (data?.[0]) return { type: data[0].entity_type, id: data[0].entity_id, via: "phone" }
+  }
+
+  // 4. The organisation they named — several people at one clinic can call, so a
+  // colleague with a different number/email still lands on the clinic's record.
+  if (custom.practice_name) {
+    const { data } = await admin.rpc("find_contact_by_org", { p_org: String(custom.practice_name), p_demo: isDemo })
+    if (data?.[0]) return { type: data[0].entity_type, id: data[0].entity_id, via: "organisation" }
   }
   return null
 }
@@ -233,21 +243,45 @@ export async function ingestCall(
     callerLabel: null,
     summary: analysis?.call_summary ?? null,
     isDemo,
+    needsReview: false,
   }
   if (patientSafe) return result
 
   // Match to a record (once), so even in-progress calls link up when possible.
-  let contact: { type: "lead" | "client"; id: string } | null = row.client_id
+  let contact: { type: "lead" | "client"; id: string; via?: string } | null = row.client_id
     ? { type: "client", id: row.client_id }
     : row.lead_id
       ? { type: "lead", id: row.lead_id }
-      : await matchContact(admin, call, row, custom)
+      : await matchContact(admin, call, row, custom, isDemo)
 
   const connected =
     (row.duration_ms ?? 0) >= CONNECTED_MIN_MS && !analysis?.in_voicemail
 
-  // Unknown caller on a finished, real conversation → create a lead so
-  // nothing said on the phone is lost.
+  // Unknown caller on a finished, real conversation. A caller who says they are an
+  // existing client but can't be matched must NOT become a duplicate lead: flag the
+  // call for the Owner instead, with close name matches as suggestions.
+  const saysClient = truthy(custom.says_existing_client)
+  const candidates: { entity_type: string; entity_id: string; practice_name: string }[] =
+    !contact && isFinal && connected && custom.practice_name
+      ? ((await admin.rpc("find_org_candidates", { p_org: String(custom.practice_name), p_demo: isDemo })).data ?? [])
+      : []
+  if (!contact && isFinal && connected && saysClient) {
+    if (!row.needs_review) {
+      await admin
+        .from("voice_calls")
+        .update({
+          needs_review: true,
+          review_reason:
+            "Says they are an existing client, but no matching phone, email or organisation was found. No lead was created.",
+          review_candidates: candidates,
+        })
+        .eq("id", row.id)
+    }
+    result.needsReview = true
+    return result
+  }
+
+  // Otherwise a first-time caller → create a lead so nothing said on the phone is lost.
   if (!contact && isFinal && connected) {
     const otherNumber =
       call.call_type === "web_call"
@@ -279,6 +313,17 @@ export async function ingestCall(
       if (leadError) throw leadError
       contact = { type: "lead", id: lead.id }
       result.createdLead = true
+      if (candidates.length > 0) {
+        await admin
+          .from("voice_calls")
+          .update({
+            needs_review: true,
+            review_reason: "New lead created, but similar existing record(s) were found — check this isn't a duplicate.",
+            review_candidates: candidates,
+          })
+          .eq("id", row.id)
+        result.needsReview = true
+      }
       await admin.from("audit_logs").insert({
         actor_type: "agent",
         actor_id: null,
@@ -352,6 +397,20 @@ export async function ingestCall(
         metadata: { retell_call_id: call.call_id, direction: row.direction },
       })
     }
+  }
+
+  // Matched on the organisation name alone: record WHO called, so a colleague isn't
+  // mistaken for the usual contact.
+  if (result.activityCreated && contact.via === "organisation") {
+    const who = [custom.caller_name, custom.caller_email, custom.caller_phone].filter(Boolean).join(", ")
+    await admin.from("activities").insert({
+      entity_type: contact.type,
+      entity_id: contact.id,
+      type: "note",
+      content: `Call from ${who || "an unnamed caller"} — matched by organisation name (${custom.practice_name}). Not the usual contact?`,
+      created_by: null,
+      metadata: { source: "voice_agent", retell_call_id: call.call_id, matched_by: "organisation" },
+    })
   }
 
   if (result.activityCreated) {

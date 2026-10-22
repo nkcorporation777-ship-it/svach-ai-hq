@@ -15,7 +15,7 @@ export const AUDIENCE_LABEL: Record<Audience, string> = {
 
 export interface CallFilters {
   agentId?: string
-  outcome?: "all" | "successful" | "unsuccessful"
+  outcome?: "all" | "successful" | "unsuccessful" | "needs_review"
 }
 
 const CALL_SELECT =
@@ -54,6 +54,7 @@ export function useVoiceCalls(filters: CallFilters = {}) {
       if (filters.agentId) q = q.eq("agent_id", filters.agentId)
       if (filters.outcome === "successful") q = q.eq("call_successful", true)
       if (filters.outcome === "unsuccessful") q = q.eq("call_successful", false)
+      if (filters.outcome === "needs_review") q = q.eq("needs_review", true)
       const { data, error } = await q
       if (error) throw error
       return data
@@ -144,15 +145,59 @@ export function useVoiceStatus() {
   })
 }
 
-export function useClientsLite() {
+/** Calls flagged for the Owner (unmatched "existing client" claims, possible duplicates). */
+export function useNeedsReviewCount() {
+  const demo = useDemoMode()
   return useQuery({
-    queryKey: ["voice", "clients-lite"],
+    queryKey: ["voice", "needs-review-count", demo],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { count, error } = await supabase
+        .from("voice_calls")
+        .select("id", { count: "exact", head: true })
+        .eq("needs_review", true)
+        .eq("is_demo", demo)
+      if (error) throw error
+      return count ?? 0
+    },
+  })
+}
+
+/** `demo` set: only demo (true) or only real (false) records — so a demo call is never
+ * offered real clients to link to, and the other way round. Omit for everything. */
+export function useLeadsLite(demo?: boolean) {
+  return useQuery({
+    queryKey: ["voice", "leads-lite", demo],
+    queryFn: async () => {
+      const q = supabase
+        .from("leads")
+        .select("id, practice_name, contact_name")
+        .is("deleted_at", null)
+        .order("practice_name")
+      const { data, error } = await (demo === undefined
+        ? q
+        : demo
+          ? q.filter("metadata->>is_demo", "eq", "true")
+          : q.or("metadata->>is_demo.is.null,metadata->>is_demo.neq.true"))
+      if (error) throw error
+      return data
+    },
+  })
+}
+
+export function useClientsLite(demo?: boolean) {
+  return useQuery({
+    queryKey: ["voice", "clients-lite", demo],
+    queryFn: async () => {
+      const q = supabase
         .from("clients")
         .select("id, practice_name")
         .is("deleted_at", null)
         .order("practice_name")
+      const { data, error } = await (demo === undefined
+        ? q
+        : demo
+          ? q.filter("metadata->>is_demo", "eq", "true")
+          : q.or("metadata->>is_demo.is.null,metadata->>is_demo.neq.true"))
       if (error) throw error
       return data
     },
@@ -216,6 +261,82 @@ export function useStopTrackingAgent() {
       await logAudit({ action: "voice.agent_untracked", entityType: "voice_agent", entityId: id })
     },
     onSuccess: () => invalidateVoice(queryClient),
+  })
+}
+
+/** Settles a flagged call: link it to the right client/lead (writes the call onto
+ * their timeline, like an automatic match would) or just dismiss the flag. */
+export function useResolveReview() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      callId,
+      target,
+    }: {
+      callId: string
+      target?: { type: "lead" | "client"; id: string }
+    }) => {
+      if (!target) {
+        const { error } = await supabase
+          .from("voice_calls")
+          .update({ needs_review: false, review_reason: null, review_candidates: null })
+          .eq("id", callId)
+        if (error) throw error
+        await logAudit({ action: "voice.review_dismissed", entityType: "voice_call", entityId: callId })
+        return
+      }
+
+      const { data: call, error: readError } = await supabase.from("voice_calls").select("*").eq("id", callId).single()
+      if (readError) throw readError
+
+      let activityId = call.activity_id
+      if (!activityId) {
+        const minutes = Math.max(1, Math.round((call.duration_ms ?? 0) / 60000))
+        const { data: activity, error: activityError } = await supabase
+          .from("activities")
+          .insert({
+            entity_type: target.type,
+            entity_id: target.id,
+            type: "call",
+            content:
+              call.summary || `${call.direction === "outbound" ? "Outbound" : "Inbound"} voice call (${minutes} min)`,
+            created_at: call.ended_at ?? new Date().toISOString(),
+            metadata: {
+              source: "voice_agent",
+              retell_call_id: call.retell_call_id,
+              voice_call_id: call.id,
+              matched_manually: true,
+            },
+          })
+          .select("id")
+          .single()
+        if (activityError) throw activityError
+        activityId = activity.id
+      }
+
+      const { error } = await supabase
+        .from("voice_calls")
+        .update({
+          client_id: target.type === "client" ? target.id : null,
+          lead_id: target.type === "lead" ? target.id : null,
+          activity_id: activityId,
+          needs_review: false,
+          review_reason: null,
+          review_candidates: null,
+        })
+        .eq("id", callId)
+      if (error) throw error
+      await logAudit({
+        action: "voice.call_matched_manually",
+        entityType: target.type,
+        entityId: target.id,
+        metadata: { voice_call_id: callId },
+      })
+    },
+    onSuccess: () => {
+      invalidateVoice(queryClient)
+      queryClient.invalidateQueries({ queryKey: ["clients"] })
+    },
   })
 }
 
@@ -475,12 +596,15 @@ export function useCallNow() {
   })
 }
 
-/** Demo only: play a fake inbound call that books an appointment. */
+export type InboundScenario = "inbound_booking" | "inbound_colleague" | "inbound_unmatched"
+
+/** Demo only: play a fake inbound call — a new prospect who books (default), an
+ * existing client's colleague, or a caller who claims to be a client but isn't found. */
 export function useSimulateInbound() {
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (scenario: InboundScenario = "inbound_booking") => {
       const { data, error } = await supabase.functions.invoke("voice-demo", {
-        body: { action: "simulate", scenario: "inbound_booking" },
+        body: { action: "simulate", scenario },
       })
       if (error) throw error
       if (data?.error) throw new Error(data.error)

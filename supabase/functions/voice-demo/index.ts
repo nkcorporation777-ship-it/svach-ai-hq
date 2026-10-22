@@ -518,8 +518,33 @@ function outboundPlan(campaign: Campaign, name: string, practice: string): Outbo
   }
 }
 
+/** An existing client's colleague calls: different person, same clinic. */
+function colleagueScript(practice: string) {
+  return [
+    "Agent: Thanks for calling Svach AI, I'm the virtual assistant. How can I help?",
+    `Caller: Hi, I'm Anita Desai from ${practice}. We're already a client of yours.`,
+    "Agent: Welcome back, Anita! What can I help with today?",
+    "Caller: Our reminder emails are going out an hour late. Could someone look into it?",
+    "Agent: Absolutely — I'll note it for the team and ask them to follow up with you.",
+    "Caller: Thank you. You can reach me at anita.desai@colleague.example.",
+  ]
+}
+
+/** Says they are a client, but nothing in HQ matches — goes to the review queue. */
+function unmatchedClientScript() {
+  return [
+    "Agent: Thanks for calling Svach AI, I'm the virtual assistant. How can I help?",
+    "Caller: Hi, I'm Rohit Menon from Menon Diagnostics. We're an existing client of yours.",
+    "Agent: Thanks Rohit. Let me check — could I have your email address?",
+    "Caller: It's rohit@menondiagnostics.example.",
+    "Agent: Thank you. What can I help with today?",
+    "Caller: We'd like to add a second location to the system.",
+    "Agent: Great — I'll pass that to the team so they can speak with you about it.",
+  ]
+}
+
 interface SimulateOptions {
-  scenario: "inbound_booking" | "outbound"
+  scenario: "inbound_booking" | "inbound_colleague" | "inbound_unmatched" | "outbound"
   campaign: Campaign
   leadId: string | null
   clientId: string | null
@@ -529,16 +554,36 @@ interface SimulateOptions {
 async function simulateCall(admin: any, opts: SimulateOptions) {
   const start = Date.now()
   const callId = `demo-live-${start}`
-  const isInbound = opts.scenario === "inbound_booking"
+  const isInbound = opts.scenario !== "outbound"
+  const saysClient = opts.scenario === "inbound_colleague" || opts.scenario === "inbound_unmatched"
 
   let persona = PERSONAS[Math.floor(Math.random() * PERSONAS.length)]
   let lines: string[]
   let summary: string
   let hotLead = false
-  let books = isInbound
+  let books = opts.scenario === "inbound_booking"
   let phone: string | null = null
 
-  if (isInbound) {
+  if (opts.scenario === "inbound_colleague") {
+    // deno-lint-ignore no-explicit-any
+    const { data: target }: { data: Record<string, any> | null } = await admin
+      .from("clients")
+      .select("practice_name")
+      .filter("metadata->>is_demo", "eq", "true")
+      .order("created_at")
+      .limit(1)
+      .maybeSingle()
+    if (!target) throw new Error("Seed demo data first — there is no demo client to call from.")
+    persona = { name: "Anita Desai", practice: target.practice_name, email: "anita.desai@colleague.example", phone: "" }
+    lines = colleagueScript(persona.practice)
+    summary = `Anita Desai from ${persona.practice} (existing client) reports reminder emails going out an hour late; team to follow up.`
+    books = false
+  } else if (opts.scenario === "inbound_unmatched") {
+    persona = { name: "Rohit Menon", practice: "Menon Diagnostics", email: "rohit@menondiagnostics.example", phone: "" }
+    lines = unmatchedClientScript()
+    summary = "Rohit Menon (Menon Diagnostics) says they are an existing client and wants to add a second location. No matching record found."
+    books = false
+  } else if (isInbound) {
     lines = inboundScript(persona)
     summary = `${persona.name} (${persona.practice}) misses 20+ calls a week, mostly after hours. Booked a discovery call.`
   } else {
@@ -629,6 +674,7 @@ async function simulateCall(admin: any, opts: SimulateOptions) {
           interest_level: "high",
           hot_lead: hotLead,
           callback_requested: opts.campaign === "client_check_in" && !isInbound,
+          says_existing_client: saysClient,
         },
       },
     },
@@ -669,7 +715,10 @@ Deno.serve(async (req) => {
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
 
     if (action === "simulate") {
-      const kind = scenario === "outbound" ? "outbound" : "inbound_booking"
+      const kind =
+        scenario === "outbound" || scenario === "inbound_colleague" || scenario === "inbound_unmatched"
+          ? scenario
+          : "inbound_booking"
       const camp: Campaign = (["speed_to_lead", "proposal_follow_up", "client_check_in", "appointment_call"] as const).includes(campaign)
         ? campaign
         : "speed_to_lead"

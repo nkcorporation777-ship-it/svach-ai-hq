@@ -194,3 +194,19 @@ Cal.com webhooks are signature-verified; the Retell API key exists only as an Ed
 Function secret; the public demo link can only start the one demo agent and is capped
 per day and per visitor; outbound calls are owner-initiated and re-checked server-side
 (opt-out, calling hours, daily cap, 24-hour no-repeat, never demo contacts).
+
+### Voice live lookup (`voice-lookup`)
+
+Retell-signed only (same HMAC as the call webhook). The in-call function answers just
+`client | lead | new` and never returns names or records. The inbound-call webhook returns a first
+name and clinic name for a number the caller is phoning from; caller ID can be spoofed, so prompts must
+greet by name only and reveal nothing else until the caller confirms. Only connected agents that serve
+Svach AI are answered; demo and patient-facing agents always get "new". Organisation-name matching never
+crosses the demo/real boundary.
+
+### Finance
+
+`invoice-get` is public but token-authenticated (the invoice token is a random UUID); it never serves drafts, never returns
+internal ids, and records only the first view. `invoice-send` requires an HQ login and only marks an invoice sent after
+the email succeeds. Invoice, payment and expense tables are Owner-only (RLS). No card or bank credentials are stored: payments
+are recorded by hand with a reference only.

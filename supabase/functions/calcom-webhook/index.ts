@@ -45,25 +45,60 @@ async function verifySignature(rawBody: string, secret: string, signature: strin
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } })
 
+/** Rejected or ignored deliveries leave a trace in ooa_system_health_events so
+ * "my booking didn't show up" can be diagnosed. Never stores the request body;
+ * capped so an unauthenticated caller can't flood the table. */
+async function noteDelivery(
+  // deno-lint-ignore no-explicit-any
+  admin: any,
+  eventType: string,
+  detail: Record<string, unknown>,
+) {
+  try {
+    const since = new Date(Date.now() - 60_000).toISOString()
+    const { count } = await admin
+      .from("ooa_system_health_events")
+      .select("id", { count: "exact", head: true })
+      .eq("source", "calcom")
+      .in("event_type", ["webhook_rejected", "webhook_ignored"])
+      .gte("created_at", since)
+    if ((count ?? 0) >= 5) return
+    await admin
+      .from("ooa_system_health_events")
+      .insert({ source: "calcom", event_type: eventType, severity: "warning", detail })
+  } catch (err) {
+    console.error("calcom-webhook: could not record delivery note:", err)
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 })
 
   const rawBody = await req.text()
+  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
   const signature = req.headers.get("x-cal-signature-256")
-  if (!signature) return json(401, { error: "Unauthorized" })
+  if (!signature) {
+    await noteDelivery(admin, "webhook_rejected", { reason: "no_signature_header" })
+    return json(401, { error: "Unauthorized" })
+  }
 
   const secret = Deno.env.get("CALCOM_WEBHOOK_SECRET")
   if (!secret) return json(503, { error: "Cal.com not connected — CALCOM_WEBHOOK_SECRET is missing." })
-  if (!(await verifySignature(rawBody, secret, signature))) return json(401, { error: "Unauthorized" })
+  if (!(await verifySignature(rawBody, secret, signature))) {
+    await noteDelivery(admin, "webhook_rejected", { reason: "signature_mismatch" })
+    return json(401, { error: "Unauthorized" })
+  }
 
-  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
   let trigger = ""
   let uid = ""
   try {
     const body = JSON.parse(rawBody)
     trigger = body.triggerEvent
     uid = body.payload?.uid ?? ""
-    await processBooking(admin, body)
+    const result = await processBooking(admin, body)
+    if (!result.handled) {
+      await noteDelivery(admin, "webhook_ignored", { trigger, uid })
+    }
     return new Response(null, { status: 204 })
   } catch (err) {
     console.error("calcom-webhook error:", err)

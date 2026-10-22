@@ -17,6 +17,7 @@ const OUTCOMES: { value: NonNullable<CallFilters["outcome"]>; label: string }[] 
   { value: "all", label: "All outcomes" },
   { value: "successful", label: "Successful" },
   { value: "unsuccessful", label: "Unsuccessful" },
+  { value: "needs_review", label: "Needs review" },
 ]
 
 export function CallsTab() {
@@ -113,6 +114,11 @@ export function CallsTab() {
                         </Link>
                       ) : (
                         <span className="text-muted-foreground">Unmatched</span>
+                      )}
+                      {c.needs_review && (
+                        <span className="ml-2 rounded-[var(--radius-pill)] border border-status-warning/40 bg-status-warning/10 px-2 py-0.5 text-xs text-status-warning">
+                          Needs review
+                        </span>
                       )}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">{formatMinutes(c.duration_ms)}</TableCell>

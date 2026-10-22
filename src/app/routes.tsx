@@ -18,7 +18,10 @@ import { ProjectDetailPage } from "@/features/delivery/ProjectDetailPage"
 import { VoicePage } from "@/features/voice/VoicePage"
 import { CallDetailPage } from "@/features/voice/CallDetailPage"
 import { TryAgentPage } from "@/features/voice/TryAgentPage"
-import { Megaphone, Wallet, Headphones } from "lucide-react"
+import { FinancePage } from "@/features/finance/FinancePage"
+import { InvoiceDetailPage } from "@/features/finance/InvoiceDetailPage"
+import { InvoicePublicPage } from "@/features/finance/InvoicePublicPage"
+import { Megaphone, Headphones } from "lucide-react"
 
 /** One route per INFORMATION_ARCHITECTURE.md §1 sidebar item. */
 export const routes: RouteObject[] = [
@@ -37,6 +40,10 @@ export const routes: RouteObject[] = [
   {
     path: "/try/:token",
     element: <TryAgentPage />,
+  },
+  {
+    path: "/invoices/:token",
+    element: <InvoicePublicPage />,
   },
   {
     element: (
@@ -68,17 +75,8 @@ export const routes: RouteObject[] = [
           />
         ),
       },
-      {
-        path: "/finance",
-        element: (
-          <LockedModulePlaceholder
-            icon={Wallet}
-            label="Finance"
-            phaseTag="Phase 3"
-            description="Invoicing, payment tracking, expense tracking, revenue dashboard."
-          />
-        ),
-      },
+      { path: "/finance", element: <FinancePage /> },
+      { path: "/finance/invoices/:id", element: <InvoiceDetailPage /> },
       {
         path: "/support",
         element: (

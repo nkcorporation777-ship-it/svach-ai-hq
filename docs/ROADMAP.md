@@ -29,9 +29,11 @@ Deploy → Optimise methodology. This is what actually replaces the current
 ClickUp/Notion usage — deliberately sequenced after Sales/Nexus since that's where the
 live pain is today, not because Delivery matters less long-term.
 
-**Phase 3 — Finance**
-Invoicing, payment tracking, expense tracking, revenue dashboard. Likely a Stripe (or
-equivalent) integration via n8n rather than custom billing code.
+**Phase 3 — Finance** *(first version built)*
+Invoicing, payment tracking, expense tracking, revenue dashboard. v1 is deliberately
+manual: invoices are emailed with a private link and the Owner records each payment by
+hand (UPI / bank / cash...). A payment gateway (PayPal) comes later — `payments.provider`
+and `provider_ref` already exist so a gateway webhook can insert payments without a redesign.
 
 **Phase 4 — Marketing & Support**
 Social media scheduling/analytics; support tickets, bug tracker, SLA monitor. Lowest
