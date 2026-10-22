@@ -25,3 +25,6 @@ dist-ssr
 
 # Local Claude Code settings (machine-specific tool permissions) — not for a shared repo
 .claude/settings.local.json
+
+# Deno lockfile created by local Edge Function checks (no deno.json in this repo)
+deno.lock
