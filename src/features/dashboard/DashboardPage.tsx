@@ -6,6 +6,8 @@ import { ActionQueueCard } from "@/components/shared/ActionQueueCard"
 import { formatCurrency } from "@/lib/format"
 import { useLeads } from "@/features/sales/hooks"
 import { useClients, useAllFollowUps } from "@/features/nexus/hooks"
+import { isOpenStatus, slaOf, useTickets } from "@/features/support/hooks"
+import { useSocialPosts } from "@/features/marketing/hooks"
 import {
   useSystemHealthEvents,
   useOoaRecommendations,
@@ -68,6 +70,15 @@ export function DashboardPage() {
   }).length
   const attentionCount = overdueCount + dueTodayCount
 
+  const { data: tickets } = useTickets()
+  const { data: posts } = useSocialPosts()
+  const openTickets = (tickets ?? []).filter((t) => isOpenStatus(t.status))
+  const slaBreachedCount = openTickets.filter((t) => {
+    const s = slaOf(t)
+    return s.response === "breached" || s.resolution === "breached"
+  }).length
+  const failedPostCount = (posts ?? []).filter((p) => p.status === "failed").length
+
   return (
     <div className="flex flex-col gap-8">
       <header>
@@ -93,7 +104,27 @@ export function DashboardPage() {
         </Link>
       )}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {slaBreachedCount > 0 && (
+        <Link
+          to="/support?tab=sla"
+          className="flex items-center gap-3 rounded-[var(--radius-card)] border border-status-error bg-status-error/10 px-4 py-3 text-sm font-medium text-status-error transition-colors hover:bg-status-error/20"
+        >
+          <AlertTriangle className="size-4 shrink-0" />
+          {slaBreachedCount} support ticket{slaBreachedCount === 1 ? " has" : "s have"} missed an SLA target — click to review
+        </Link>
+      )}
+
+      {failedPostCount > 0 && (
+        <Link
+          to="/marketing?tab=posts"
+          className="flex items-center gap-3 rounded-[var(--radius-card)] border border-status-warning bg-status-warning/10 px-4 py-3 text-sm font-medium text-status-warning transition-colors hover:bg-status-warning/20"
+        >
+          <AlertTriangle className="size-4 shrink-0" />
+          {failedPostCount} social post{failedPostCount === 1 ? "" : "s"} failed to publish — click to review
+        </Link>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile
           value={openLeadCount}
           label={`Open leads (${Object.entries(stageCounts)
@@ -103,6 +134,7 @@ export function DashboardPage() {
         />
         <StatTile value={flaggedClientCount} label="Clients flagged for follow-up" />
         <StatTile value={formatCurrency(pipelineValue)} label="Pipeline value" />
+        <StatTile value={openTickets.length} label="Open support tickets" />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

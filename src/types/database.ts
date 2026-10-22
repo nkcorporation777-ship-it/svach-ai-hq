@@ -16,7 +16,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.15"
   }
   public: {
     Tables: {
@@ -173,6 +173,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "voice_calls"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_contact_status"
+            referencedColumns: ["client_id"]
           },
           {
             foreignKeyName: "appointments_client_id_fkey"
@@ -558,6 +565,61 @@ export type Database = {
             foreignKeyName: "expenses_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "client_contact_status"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "expenses_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      follow_ups: {
+        Row: {
+          client_id: string
+          completed_at: string | null
+          created_at: string
+          due_at: string
+          id: string
+          note: string | null
+          outcome_notes: string | null
+          status: string
+        }
+        Insert: {
+          client_id: string
+          completed_at?: string | null
+          created_at?: string
+          due_at: string
+          id?: string
+          note?: string | null
+          outcome_notes?: string | null
+          status?: string
+        }
+        Update: {
+          client_id?: string
+          completed_at?: string | null
+          created_at?: string
+          due_at?: string
+          id?: string
+          note?: string | null
+          outcome_notes?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "follow_ups_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_contact_status"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "follow_ups_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -697,6 +759,13 @@ export type Database = {
             foreignKeyName: "invoices_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "client_contact_status"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -705,104 +774,6 @@ export type Database = {
             columns: ["proposal_id"]
             isOneToOne: false
             referencedRelation: "proposals"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      payments: {
-        Row: {
-          amount: number
-          created_at: string
-          id: string
-          invoice_id: string
-          method: string
-          notes: string | null
-          paid_on: string
-          provider: string | null
-          provider_ref: string | null
-          recorded_by: string | null
-          reference: string | null
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          id?: string
-          invoice_id: string
-          method?: string
-          notes?: string | null
-          paid_on?: string
-          provider?: string | null
-          provider_ref?: string | null
-          recorded_by?: string | null
-          reference?: string | null
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          id?: string
-          invoice_id?: string
-          method?: string
-          notes?: string | null
-          paid_on?: string
-          provider?: string | null
-          provider_ref?: string | null
-          recorded_by?: string | null
-          reference?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "payments_invoice_id_fkey"
-            columns: ["invoice_id"]
-            isOneToOne: false
-            referencedRelation: "invoices"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      follow_ups: {
-        Row: {
-          client_id: string
-          completed_at: string | null
-          created_at: string
-          due_at: string
-          id: string
-          note: string | null
-          outcome_notes: string | null
-          status: string
-        }
-        Insert: {
-          client_id: string
-          completed_at?: string | null
-          created_at?: string
-          due_at: string
-          id?: string
-          note?: string | null
-          outcome_notes?: string | null
-          status?: string
-        }
-        Update: {
-          client_id?: string
-          completed_at?: string | null
-          created_at?: string
-          due_at?: string
-          id?: string
-          note?: string | null
-          outcome_notes?: string | null
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "follow_ups_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "client_contact_status"
-            referencedColumns: ["client_id"]
-          },
-          {
-            foreignKeyName: "follow_ups_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]
@@ -1044,6 +1015,24 @@ export type Database = {
           },
         ]
       }
+      marketing_settings: {
+        Row: {
+          id: boolean
+          n8n_publish_webhook_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: boolean
+          n8n_publish_webhook_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: boolean
+          n8n_publish_webhook_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ooa_recommendations: {
         Row: {
           created_at: string
@@ -1132,6 +1121,56 @@ export type Database = {
           source?: string
         }
         Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          invoice_id: string
+          method: string
+          notes: string | null
+          paid_on: string
+          provider: string | null
+          provider_ref: string | null
+          recorded_by: string | null
+          reference: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          invoice_id: string
+          method?: string
+          notes?: string | null
+          paid_on?: string
+          provider?: string | null
+          provider_ref?: string | null
+          recorded_by?: string | null
+          reference?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          method?: string
+          notes?: string | null
+          paid_on?: string
+          provider?: string | null
+          provider_ref?: string | null
+          recorded_by?: string | null
+          reference?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pricing_tiers: {
         Row: {
@@ -1402,6 +1441,110 @@ export type Database = {
           },
         ]
       }
+      social_post_metrics: {
+        Row: {
+          clicks: number | null
+          comments: number | null
+          id: string
+          impressions: number | null
+          platform: string
+          post_id: string
+          reactions: number | null
+          recorded_at: string
+          shares: number | null
+        }
+        Insert: {
+          clicks?: number | null
+          comments?: number | null
+          id?: string
+          impressions?: number | null
+          platform: string
+          post_id: string
+          reactions?: number | null
+          recorded_at?: string
+          shares?: number | null
+        }
+        Update: {
+          clicks?: number | null
+          comments?: number | null
+          id?: string
+          impressions?: number | null
+          platform?: string
+          post_id?: string
+          reactions?: number | null
+          recorded_at?: string
+          shares?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_post_metrics_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "social_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_posts: {
+        Row: {
+          attempts: number
+          body: string
+          campaign: string | null
+          created_at: string
+          created_by: string | null
+          handed_off_at: string | null
+          id: string
+          last_error: string | null
+          link_url: string | null
+          media_urls: string[]
+          platforms: string[]
+          published_at: string | null
+          published_url: string | null
+          scheduled_at: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          body?: string
+          campaign?: string | null
+          created_at?: string
+          created_by?: string | null
+          handed_off_at?: string | null
+          id?: string
+          last_error?: string | null
+          link_url?: string | null
+          media_urls?: string[]
+          platforms?: string[]
+          published_at?: string | null
+          published_url?: string | null
+          scheduled_at?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          body?: string
+          campaign?: string | null
+          created_at?: string
+          created_by?: string | null
+          handed_off_at?: string | null
+          id?: string
+          last_error?: string | null
+          link_url?: string | null
+          media_urls?: string[]
+          platforms?: string[]
+          published_at?: string | null
+          published_url?: string | null
+          scheduled_at?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       specialties: {
         Row: {
           id: string
@@ -1420,159 +1563,161 @@ export type Database = {
         }
         Relationships: []
       }
-      voice_call_requests: {
+      support_sla_targets: {
         Row: {
-          appointment_id: string | null
-          campaign_key: string
-          client_id: string | null
-          created_at: string
-          error: string | null
-          id: string
-          lead_id: string | null
-          requested_by: string | null
-          retell_call_id: string | null
-          status: string
-          to_number: string | null
+          first_response_hours: number
+          order_index: number
+          priority: string
+          resolution_hours: number
+          updated_at: string
         }
         Insert: {
-          appointment_id?: string | null
-          campaign_key: string
-          client_id?: string | null
-          created_at?: string
-          error?: string | null
-          id?: string
-          lead_id?: string | null
-          requested_by?: string | null
-          retell_call_id?: string | null
-          status?: string
-          to_number?: string | null
+          first_response_hours: number
+          order_index: number
+          priority: string
+          resolution_hours: number
+          updated_at?: string
         }
         Update: {
-          appointment_id?: string | null
-          campaign_key?: string
-          client_id?: string | null
-          created_at?: string
-          error?: string | null
-          id?: string
-          lead_id?: string | null
-          requested_by?: string | null
-          retell_call_id?: string | null
-          status?: string
-          to_number?: string | null
+          first_response_hours?: number
+          order_index?: number
+          priority?: string
+          resolution_hours?: number
+          updated_at?: string
         }
         Relationships: []
       }
-      voice_campaigns: {
+      support_ticket_updates: {
         Row: {
-          agent_id: string | null
-          daily_cap: number
-          default_country_code: string
-          enabled: boolean
-          from_number: string | null
-          key: string
-          label: string
-          timezone: string
-          updated_at: string
-          window_end_hour: number
-          window_start_hour: number
+          body: string
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          ticket_id: string
         }
         Insert: {
-          agent_id?: string | null
-          daily_cap?: number
-          default_country_code?: string
-          enabled?: boolean
-          from_number?: string | null
-          key: string
-          label: string
-          timezone?: string
-          updated_at?: string
-          window_end_hour?: number
-          window_start_hour?: number
+          body: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          ticket_id: string
         }
         Update: {
-          agent_id?: string | null
-          daily_cap?: number
-          default_country_code?: string
-          enabled?: boolean
-          from_number?: string | null
-          key?: string
-          label?: string
-          timezone?: string
-          updated_at?: string
-          window_end_hour?: number
-          window_start_hour?: number
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          ticket_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "voice_campaigns_agent_id_fkey"
-            columns: ["agent_id"]
+            foreignKeyName: "support_ticket_updates_ticket_id_fkey"
+            columns: ["ticket_id"]
             isOneToOne: false
-            referencedRelation: "voice_agents"
+            referencedRelation: "support_tickets"
             referencedColumns: ["id"]
           },
         ]
       }
-      voice_demo_link_uses: {
+      support_tickets: {
         Row: {
+          channel: string
+          client_id: string | null
+          closed_at: string | null
           created_at: string
+          created_by: string | null
+          description: string | null
+          environment: string | null
+          first_responded_at: string | null
+          first_response_due_at: string | null
+          fixed_in: string | null
           id: string
-          ip: string | null
-          link_id: string
-          retell_call_id: string | null
+          kind: string
+          opened_at: string
+          priority: string
+          project_id: string | null
+          resolution_due_at: string | null
+          resolved_at: string | null
+          severity: string | null
+          status: string
+          steps_to_reproduce: string | null
+          subject: string
+          ticket_number: string
+          updated_at: string
         }
         Insert: {
+          channel?: string
+          client_id?: string | null
+          closed_at?: string | null
           created_at?: string
+          created_by?: string | null
+          description?: string | null
+          environment?: string | null
+          first_responded_at?: string | null
+          first_response_due_at?: string | null
+          fixed_in?: string | null
           id?: string
-          ip?: string | null
-          link_id: string
-          retell_call_id?: string | null
+          kind?: string
+          opened_at?: string
+          priority?: string
+          project_id?: string | null
+          resolution_due_at?: string | null
+          resolved_at?: string | null
+          severity?: string | null
+          status?: string
+          steps_to_reproduce?: string | null
+          subject: string
+          ticket_number?: string
+          updated_at?: string
         }
         Update: {
+          channel?: string
+          client_id?: string | null
+          closed_at?: string | null
           created_at?: string
+          created_by?: string | null
+          description?: string | null
+          environment?: string | null
+          first_responded_at?: string | null
+          first_response_due_at?: string | null
+          fixed_in?: string | null
           id?: string
-          ip?: string | null
-          link_id?: string
-          retell_call_id?: string | null
-        }
-        Relationships: []
-      }
-      voice_demo_links: {
-        Row: {
-          agent_id: string | null
-          created_at: string
-          daily_cap: number
-          enabled: boolean
-          id: string
-          label: string
-          per_ip_daily_cap: number
-          token: string
-        }
-        Insert: {
-          agent_id?: string | null
-          created_at?: string
-          daily_cap?: number
-          enabled?: boolean
-          id?: string
-          label?: string
-          per_ip_daily_cap?: number
-          token?: string
-        }
-        Update: {
-          agent_id?: string | null
-          created_at?: string
-          daily_cap?: number
-          enabled?: boolean
-          id?: string
-          label?: string
-          per_ip_daily_cap?: number
-          token?: string
+          kind?: string
+          opened_at?: string
+          priority?: string
+          project_id?: string | null
+          resolution_due_at?: string | null
+          resolved_at?: string | null
+          severity?: string | null
+          status?: string
+          steps_to_reproduce?: string | null
+          subject?: string
+          ticket_number?: string
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "voice_demo_links_agent_id_fkey"
-            columns: ["agent_id"]
+            foreignKeyName: "support_tickets_client_id_fkey"
+            columns: ["client_id"]
             isOneToOne: false
-            referencedRelation: "voice_agents"
+            referencedRelation: "client_contact_status"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "support_tickets_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -1619,7 +1764,85 @@ export type Database = {
             foreignKeyName: "voice_agents_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "client_contact_status"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "voice_agents_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      voice_call_requests: {
+        Row: {
+          appointment_id: string | null
+          campaign_key: string
+          client_id: string | null
+          created_at: string
+          error: string | null
+          id: string
+          lead_id: string | null
+          requested_by: string | null
+          retell_call_id: string | null
+          status: string
+          to_number: string | null
+        }
+        Insert: {
+          appointment_id?: string | null
+          campaign_key: string
+          client_id?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          lead_id?: string | null
+          requested_by?: string | null
+          retell_call_id?: string | null
+          status?: string
+          to_number?: string | null
+        }
+        Update: {
+          appointment_id?: string | null
+          campaign_key?: string
+          client_id?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          lead_id?: string | null
+          requested_by?: string | null
+          retell_call_id?: string | null
+          status?: string
+          to_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_call_requests_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voice_call_requests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_contact_status"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "voice_call_requests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voice_call_requests_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
         ]
@@ -1737,6 +1960,13 @@ export type Database = {
             foreignKeyName: "voice_calls_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "client_contact_status"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "voice_calls_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -1745,6 +1975,129 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      voice_campaigns: {
+        Row: {
+          agent_id: string | null
+          daily_cap: number
+          default_country_code: string
+          enabled: boolean
+          from_number: string | null
+          key: string
+          label: string
+          timezone: string
+          updated_at: string
+          window_end_hour: number
+          window_start_hour: number
+        }
+        Insert: {
+          agent_id?: string | null
+          daily_cap?: number
+          default_country_code?: string
+          enabled?: boolean
+          from_number?: string | null
+          key: string
+          label: string
+          timezone?: string
+          updated_at?: string
+          window_end_hour?: number
+          window_start_hour?: number
+        }
+        Update: {
+          agent_id?: string | null
+          daily_cap?: number
+          default_country_code?: string
+          enabled?: boolean
+          from_number?: string | null
+          key?: string
+          label?: string
+          timezone?: string
+          updated_at?: string
+          window_end_hour?: number
+          window_start_hour?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_campaigns_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "voice_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      voice_demo_link_uses: {
+        Row: {
+          created_at: string
+          id: string
+          ip: string | null
+          link_id: string
+          retell_call_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip?: string | null
+          link_id: string
+          retell_call_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip?: string | null
+          link_id?: string
+          retell_call_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_demo_link_uses_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "voice_demo_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      voice_demo_links: {
+        Row: {
+          agent_id: string | null
+          created_at: string
+          daily_cap: number
+          enabled: boolean
+          id: string
+          label: string
+          per_ip_daily_cap: number
+          token: string
+        }
+        Insert: {
+          agent_id?: string | null
+          created_at?: string
+          daily_cap?: number
+          enabled?: boolean
+          id?: string
+          label?: string
+          per_ip_daily_cap?: number
+          token?: string
+        }
+        Update: {
+          agent_id?: string | null
+          created_at?: string
+          daily_cap?: number
+          enabled?: boolean
+          id?: string
+          label?: string
+          per_ip_daily_cap?: number
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_demo_links_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "voice_agents"
             referencedColumns: ["id"]
           },
         ]
@@ -1785,13 +2138,35 @@ export type Database = {
       convert_lead_to_client: { Args: { p_lead_id: string }; Returns: string }
       find_contact_by_email: {
         Args: { p_email: string }
-        Returns: { entity_id: string; entity_type: string }[]
+        Returns: {
+          entity_id: string
+          entity_type: string
+        }[]
+      }
+      find_contact_by_org: {
+        Args: { p_demo?: boolean; p_org: string }
+        Returns: {
+          entity_id: string
+          entity_type: string
+        }[]
       }
       find_contact_by_phone: {
         Args: { p_phone: string }
-        Returns: { entity_id: string; entity_type: string }[]
+        Returns: {
+          entity_id: string
+          entity_type: string
+        }[]
+      }
+      find_org_candidates: {
+        Args: { p_demo?: boolean; p_org: string }
+        Returns: {
+          entity_id: string
+          entity_type: string
+          practice_name: string
+        }[]
       }
       is_admin: { Args: never; Returns: boolean }
+      normalize_org: { Args: { p_org: string }; Returns: string }
       record_client_intake_submission: {
         Args: { p_client_id: string; p_submission: Json }
         Returns: string
@@ -1814,12 +2189,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1843,11 +2218,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1868,11 +2243,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1893,11 +2268,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1910,11 +2285,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

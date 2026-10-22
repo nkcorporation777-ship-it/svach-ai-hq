@@ -23,9 +23,9 @@ get their own detailed breakdown in this document once each phase begins (see
 ├── 👥 Nexus (CRM)            [live — Phase 1]
 │
 ├── 🚀 Delivery               [locked — "Coming in Phase 2"]
-├── 📢 Marketing              [locked — "Coming in Phase 4"]
+├── 📢 Marketing              [live — Phase 4]
 ├── 💰 Finance                [locked — "Coming in Phase 3"]
-├── 🎧 Support                [locked — "Coming in Phase 4"]
+├── 🎧 Support                [live — Phase 4]
 │
 └── ⚙️ Settings                [live — Phase 1, minimal]
       Profile · Notification preferences
@@ -214,3 +214,20 @@ Sidebar "Finance" is now live (it was locked as "Coming in Phase 3"). Tabs: **Ov
 outstanding, overdue, six-month chart, top payers), **Invoices** (list, filter, new), **Expenses**. Invoice page
 `/finance/invoices/:id`: line items, totals, payments, send / resend by email, copy link, record payment, void or delete
 a draft. The client-facing page is the public `/invoices/:token` (like `/proposals/:token`).
+
+## Marketing (live)
+
+Sidebar "Marketing" is now live (it was locked as "Coming in Phase 4"). Tabs: **Calendar** (month grid; click a day to
+write a post for it), **Posts** (list, filter by status, add stats), **Analytics** (published posts, impressions,
+engagement and rate for 30 / 90 days / all time, by platform, top posts, posts still missing stats). A post is written
+once and ticked for one or more platforms; when its time comes HQ hands it to n8n, which posts it and reports back.
+"Mark as posted" covers posts put up by hand. The n8n webhook is set in Settings → Marketing.
+
+## Support (live)
+
+Sidebar "Support" is now live (it was locked as "Coming in Phase 4"). Tabs: **Tickets**, **Bugs** (same list with
+severity), **SLA monitor** (open / breached / at risk, SLA met % over 30 days, needs-attention list, per-priority
+targets and averages). Ticket page `/support/:id`: description (and bug details), a thread of replies to the client and
+internal notes, status and priority, and the two SLA clocks. A client's open tickets also show on their Nexus page,
+with "Log ticket". SLA targets are edited in Settings. The Dashboard shows open tickets and flags SLA breaches and
+failed posts.

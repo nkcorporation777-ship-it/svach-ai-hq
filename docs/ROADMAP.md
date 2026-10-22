@@ -35,10 +35,13 @@ manual: invoices are emailed with a private link and the Owner records each paym
 hand (UPI / bank / cash...). A payment gateway (PayPal) comes later — `payments.provider`
 and `provider_ref` already exist so a gateway webhook can insert payments without a redesign.
 
-**Phase 4 — Marketing & Support**
-Social media scheduling/analytics; support tickets, bug tracker, SLA monitor. Lowest
-urgency on current signals — re-confirm priority before starting rather than assuming
-this order still holds by the time Phase 3 finishes.
+**Phase 4 — Marketing & Support** *(first version built)*
+Social media scheduling/analytics; support tickets, bug tracker, SLA monitor. Owner's
+v1 choices: HQ is the content calendar and n8n does the posting (a cron hands each due
+post to an n8n webhook; n8n reports back), stats are typed in per post until n8n sends
+them, tickets are logged by the Owner (no client form or email-in yet), and SLA
+targets are per priority in calendar hours. Not in v1: pausing the SLA clock while
+waiting on the client, a public ticket form, email-to-ticket, direct platform APIs.
 
 **Cross-cutting, every phase**: OOA's System Health / Business Insights lenses grow
 with each new department's data; the set of approvable action types grows one at a

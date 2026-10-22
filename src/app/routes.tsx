@@ -1,7 +1,6 @@
 import type { RouteObject } from "react-router-dom"
 import { AppShell } from "@/components/layout/AppShell"
 import { RequireAuth } from "@/components/layout/RequireAuth"
-import { LockedModulePlaceholder } from "@/components/layout/LockedModulePlaceholder"
 import { DashboardPage } from "@/features/dashboard/DashboardPage"
 import { KnowledgePage } from "@/features/knowledge/KnowledgePage"
 import { KnowledgeDocumentDetailPage } from "@/features/knowledge/KnowledgeDocumentDetailPage"
@@ -21,7 +20,9 @@ import { TryAgentPage } from "@/features/voice/TryAgentPage"
 import { FinancePage } from "@/features/finance/FinancePage"
 import { InvoiceDetailPage } from "@/features/finance/InvoiceDetailPage"
 import { InvoicePublicPage } from "@/features/finance/InvoicePublicPage"
-import { Megaphone, Headphones } from "lucide-react"
+import { MarketingPage } from "@/features/marketing/MarketingPage"
+import { SupportPage } from "@/features/support/SupportPage"
+import { TicketDetailPage } from "@/features/support/TicketDetailPage"
 
 /** One route per INFORMATION_ARCHITECTURE.md §1 sidebar item. */
 export const routes: RouteObject[] = [
@@ -64,30 +65,11 @@ export const routes: RouteObject[] = [
       { path: "/delivery/:id", element: <ProjectDetailPage /> },
       { path: "/voice", element: <VoicePage /> },
       { path: "/voice/calls/:id", element: <CallDetailPage /> },
-      {
-        path: "/marketing",
-        element: (
-          <LockedModulePlaceholder
-            icon={Megaphone}
-            label="Marketing"
-            phaseTag="Phase 4"
-            description="Social media scheduling and analytics."
-          />
-        ),
-      },
+      { path: "/marketing", element: <MarketingPage /> },
       { path: "/finance", element: <FinancePage /> },
       { path: "/finance/invoices/:id", element: <InvoiceDetailPage /> },
-      {
-        path: "/support",
-        element: (
-          <LockedModulePlaceholder
-            icon={Headphones}
-            label="Support"
-            phaseTag="Phase 4"
-            description="Support tickets, bug tracker, SLA monitor."
-          />
-        ),
-      },
+      { path: "/support", element: <SupportPage /> },
+      { path: "/support/:id", element: <TicketDetailPage /> },
     ],
   },
 ]

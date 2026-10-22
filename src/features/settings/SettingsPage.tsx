@@ -18,6 +18,9 @@ import {
 } from "./hooks"
 import { EditEmailTemplateDialog } from "./EditEmailTemplateDialog"
 import { EditPricingTierDialog } from "./EditPricingTierDialog"
+import { SlaTargetsSettings } from "@/features/support/SlaTargetsSettings"
+import { MarketingSettings } from "@/features/marketing/MarketingSettings"
+import { useLocation } from "react-router-dom"
 
 const STEP_LABELS: Record<string, string> = {
   welcome: "Welcome message sent",
@@ -42,6 +45,7 @@ export function SettingsPage() {
   const { session } = useAuth()
   const queryClient = useQueryClient()
   const userId = session?.user.id
+  const { hash } = useLocation()
 
   const { data: emailTemplates } = useEmailTemplates()
   const [editingTemplate, setEditingTemplate] = useState<Tables<"client_email_templates"> | null>(
@@ -89,6 +93,13 @@ export function SettingsPage() {
     },
     enabled: !!userId,
   })
+
+  // Deep links from Support / Marketing (e.g. /settings#sla) land on their
+  // section — once the sections above have loaded and stopped moving it.
+  const sectionsLoaded = !!emailTemplates && !!pricingTiers && !!billingSettings && !isLoading
+  useEffect(() => {
+    if (hash && sectionsLoaded) document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: "smooth" })
+  }, [hash, sectionsLoaded])
 
   const [fullName, setFullName] = useState("")
 
@@ -402,6 +413,10 @@ export function SettingsPage() {
           )}
         </form>
       </Card>
+
+      <SlaTargetsSettings />
+
+      <MarketingSettings />
 
       <EditEmailTemplateDialog
         template={editingTemplate}

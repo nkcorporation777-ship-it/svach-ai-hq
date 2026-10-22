@@ -446,3 +446,30 @@ match a caller to a record (last 10 digits / case-insensitive email).
 - `expenses` — `spent_on`, `category`, `vendor`, `description`, `amount` (incl. GST), optional `client_id`.
 - `billing_settings` gained `invoice_from` (the "from" block on invoices) and `payment_instructions` (how clients pay).
 - RLS: one Owner-only policy per table, like the rest of HQ.
+
+## Marketing & Support (Phase 4)
+
+Marketing (Svach AI's own social media; HQ schedules, n8n posts):
+- `marketing_settings` — single row (`id = true`): `n8n_publish_webhook_url`, the n8n webhook due posts are sent to.
+- `social_posts` — `title` (internal), `body`, `platforms` (subset of linkedin / instagram / facebook / x / youtube /
+  threads), `media_urls`, `link_url`, `campaign`, `status` (draft | scheduled | sending | handed_off | published | failed
+  | cancelled), `scheduled_at`, `handed_off_at`, `published_at`, `published_url`, `last_error`, `attempts`. A scheduled
+  post needs a time and at least one platform (check constraints).
+- `social_post_metrics` — latest stats per post and platform (unique `post_id, platform`): impressions, reactions,
+  comments, shares, clicks. Typed in by hand or sent by n8n to `social-callback`.
+- pg_cron job `social-publish-every-5-min` calls the `social-publish` Edge Function (same vault secret as the other
+  cron jobs), which hands due posts to n8n and retries a failed hand-off up to 3 times.
+
+Support (tickets the Owner logs; clients never log in):
+- `support_tickets` — tickets and bugs in one table (`kind` = ticket | bug). `ticket_number` (SUP-NNNN / BUG-NNNN from
+  `support_ticket_number_seq`, assigned by trigger), optional `client_id` / `project_id`, `subject`, `description`,
+  `channel`, `priority` (urgent | high | normal | low), `status` (open | in_progress | waiting_on_client | resolved |
+  closed), bug fields (`severity`, `steps_to_reproduce`, `environment`, `fixed_in`), and SLA fields: `opened_at`
+  (backdatable), `first_response_due_at`, `resolution_due_at`, `first_responded_at`, `resolved_at`, `closed_at`.
+  Trigger `support_ticket_before_write` sets the number, the due dates (from the priority's targets, whenever priority
+  or `opened_at` changes) and `resolved_at` / `closed_at` from status; resolving also counts as the first response.
+- `support_ticket_updates` — the ticket's thread: `kind` reply (what the Owner told the client; the first one stops the
+  first-response clock via trigger) | note (internal) | status_change (written by the app).
+- `support_sla_targets` — per priority: `first_response_hours`, `resolution_hours` (calendar hours; defaults 1/8,
+  4/24, 8/72, 24/168). Updating a target re-times that priority's open tickets (trigger).
+- RLS: one Owner-only policy per table, like the rest of HQ. Trigger functions have EXECUTE revoked from API roles.

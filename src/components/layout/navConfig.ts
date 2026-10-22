@@ -42,21 +42,9 @@ export const departmentNav: NavItem[] = [
     status: "live",
   },
   { label: "Voice Agents", path: "/voice", icon: Mic, status: "live" },
-  {
-    label: "Marketing",
-    path: "/marketing",
-    icon: Megaphone,
-    status: "locked",
-    phaseTag: "Phase 4",
-  },
+  { label: "Marketing", path: "/marketing", icon: Megaphone, status: "live" },
   { label: "Finance", path: "/finance", icon: Wallet, status: "live" },
-  {
-    label: "Support",
-    path: "/support",
-    icon: Headphones,
-    status: "locked",
-    phaseTag: "Phase 4",
-  },
+  { label: "Support", path: "/support", icon: Headphones, status: "live" },
 ]
 
 export const settingsNav: NavItem[] = [
