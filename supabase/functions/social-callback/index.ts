@@ -6,6 +6,9 @@
 // Server-to-server (verify_jwt = false); auth is the shared `x-hq-secret`
 // header (Edge secret N8N_MARKETING_SECRET) that social-publish also sends.
 //
+// A post that went out on some platforms but not others comes back as
+// "published" with `error` naming the ones that failed.
+//
 // Body: { post_id, status: "published" | "failed", published_url?, error?,
 //         metrics?: [{ platform, impressions?, reactions?, comments?, shares?, clicks? }] }
 
@@ -43,9 +46,11 @@ Deno.serve(async (req) => {
 
   if (status === "published") {
     const url = typeof body.published_url === "string" && /^https?:\/\//i.test(body.published_url) ? body.published_url : null
+    // Published on at least one platform; `error` (if any) lists the platforms that failed.
+    const partial = typeof body.error === "string" && body.error.trim() ? body.error.trim().slice(0, 500) : null
     const { error } = await admin
       .from("social_posts")
-      .update({ status: "published", published_at: new Date().toISOString(), published_url: url, last_error: null })
+      .update({ status: "published", published_at: new Date().toISOString(), published_url: url, last_error: partial })
       .eq("id", postId)
     if (error) return json(500, { error: error.message })
   } else if (status === "failed") {

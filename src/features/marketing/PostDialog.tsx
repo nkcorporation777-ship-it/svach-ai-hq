@@ -153,6 +153,12 @@ export function PostDialog({
               </span>
             </p>
           )}
+          {post?.last_error && post.status === "published" && (
+            <p className="flex items-start gap-2 rounded-md border border-status-warning/40 bg-status-warning/10 px-3 py-2 text-sm text-status-warning">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+              <span>Published, but not everywhere. {post.last_error}</span>
+            </p>
+          )}
 
           {editable ? (
             <div className="flex flex-col gap-4">
