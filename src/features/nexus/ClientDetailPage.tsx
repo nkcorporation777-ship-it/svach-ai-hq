@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useParams, Link } from "react-router-dom"
+import { useParams, Link, useNavigate } from "react-router-dom"
 import { ArrowLeft, Sparkles, Plus, Pencil } from "lucide-react"
 import { Card } from "@/components/shared/Card"
 import { ActivityTimeline } from "@/components/shared/ActivityTimeline"
@@ -40,6 +40,8 @@ const AI_TASKS = [
   { value: "summarize_activity", label: "Summarize recent activity" },
 ]
 
+const DEPOSIT_STEP = "Deposit received"
+
 /** INFORMATION_ARCHITECTURE.md §5.2 + §5.3 (Follow-up Queue, client-scoped). */
 export function ClientDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -62,12 +64,34 @@ export function ClientDetailPage() {
   const [aiResult, setAiResult] = useState<string | null>(null)
   const [aiError, setAiError] = useState<string | null>(null)
   const [aiLoading, setAiLoading] = useState(false)
+  const [depositError, setDepositError] = useState<string | null>(null)
+  const navigate = useNavigate()
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Loading…</p>
   if (!client) return <p className="text-sm text-muted-foreground">Client not found.</p>
 
   const specialtyName = (client as { specialties?: { name: string } | null }).specialties?.name
   const leadAddedAt = (client as { leads?: { created_at: string } | null }).leads?.created_at
+
+  /** "Deposit received" isn't ticked by hand: it opens the client's deposit in Finance, and
+   * ticks itself once that deposit invoice is paid (trg_deposit_paid_onboarding). An
+   * already-paid deposit just ticks it here. */
+  async function openDeposit(stepId: string) {
+    setDepositError(null)
+    const { data: deposit, error } = await supabase
+      .from("invoices")
+      .select("id, status")
+      .eq("client_id", client!.id)
+      .eq("kind", "deposit")
+      .neq("status", "void")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (error) return setDepositError(error.message)
+    if (deposit?.status === "paid") return completeStep.mutate(stepId)
+    if (deposit) return navigate(`/finance/invoices/${deposit.id}`)
+    navigate(`/finance?tab=invoices&deposit_for=${client!.id}`)
+  }
 
   async function handleGenerate() {
     setAiLoading(true)
@@ -110,17 +134,21 @@ export function ClientDetailPage() {
             <div className="mt-4 flex flex-col gap-2">
               {steps?.map((step, i) => {
                 const isLocked = steps.slice(0, i).some((s) => !s.is_complete)
+                const isDeposit = step.step_name === DEPOSIT_STEP
                 return (
                   <SequentialChecklistItem
                     key={step.id}
                     stepName={step.step_name}
                     isComplete={step.is_complete}
                     isLocked={isLocked}
-                    onComplete={() => completeStep.mutate(step.id)}
+                    onComplete={() => (isDeposit ? openDeposit(step.id) : completeStep.mutate(step.id))}
+                    hint={isDeposit ? "Recorded in Finance" : undefined}
+                    actionLabel={isDeposit ? "Record the deposit in Finance" : undefined}
                   />
                 )
               })}
             </div>
+            {depositError && <p className="mt-2 text-sm text-status-error">{depositError}</p>}
           </Card>
 
           {intake && (

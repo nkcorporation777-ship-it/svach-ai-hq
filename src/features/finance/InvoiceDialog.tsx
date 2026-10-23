@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Plus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -60,15 +60,19 @@ const addDays = (date: string, days: number) => {
   return d.toISOString().slice(0, 10)
 }
 
-/** Create a draft invoice (optionally from a client's signed proposal) or edit an existing draft. */
+/** Create a draft invoice (optionally from a client's signed proposal) or edit an existing draft.
+ * `depositForClientId` opens it as that client's deposit invoice, filled from their signed
+ * proposal — used by the "Deposit received" onboarding step. */
 export function InvoiceDialog({
   open,
   onOpenChange,
   invoice,
+  depositForClientId,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   invoice?: EditableInvoice
+  depositForClientId?: string
 }) {
   const navigate = useNavigate()
   const { data: clients } = useBillableClients()
@@ -90,7 +94,10 @@ export function InvoiceDialog({
   const [error, setError] = useState<string | null>(null)
 
   const client = clients?.find((c) => c.id === clientId)
-  const { data: proposal } = useSignedProposal(client?.source_lead_id)
+  const { data: proposal, isLoading: proposalLoading } = useSignedProposal(client?.source_lead_id)
+  // Opened for a client's deposit: select them and apply the proposal's deposit once both have loaded.
+  const depositPrefilled = useRef(false)
+  const depositClient = depositForClientId ? clients?.find((c) => c.id === depositForClientId) : undefined
 
   // Load the form each time the dialog opens: the draft being edited, or fresh defaults.
   useEffect(() => {
@@ -127,8 +134,29 @@ export function InvoiceDialog({
       setNotes("")
       setItems([{ description: "", quantity: "1", unitPrice: "" }])
     }
+    depositPrefilled.current = false
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, invoice?.id])
+
+  useEffect(() => {
+    if (!open || invoice || !depositClient || clientId === depositClient.id) return
+    setClientId(depositClient.id)
+    setKind("deposit")
+    setBillToName(depositClient.practice_name)
+    setBillToEmail(depositClient.primary_contact_email ?? "")
+  }, [open, invoice, depositClient, clientId])
+
+  useEffect(() => {
+    if (!open || invoice || !depositClient || clientId !== depositClient.id || depositPrefilled.current) return
+    if (proposal) {
+      depositPrefilled.current = true
+      applyProposalDeposit()
+    } else if (!proposalLoading) {
+      depositPrefilled.current = true
+      setItems([{ description: `Deposit — ${depositClient.practice_name}`, quantity: "1", unitPrice: "" }])
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, invoice, depositClient, clientId, proposal, proposalLoading])
 
   function pickClient(id: string) {
     setClientId(id)
@@ -230,6 +258,18 @@ export function InvoiceDialog({
             <Label htmlFor="inv_addr">Address (optional)</Label>
             <Textarea id="inv_addr" rows={2} value={billToAddress} onChange={(e) => setBillToAddress(e.target.value)} />
           </div>
+
+          {depositForClientId && !invoice && (
+            <p className="rounded-lg border border-status-success/30 bg-status-success/5 p-3 text-sm">
+              {depositClient ? `Deposit invoice for ${depositClient.practice_name}. ` : "Deposit invoice. "}
+              {proposal
+                ? "Filled in from their signed proposal."
+                : !proposalLoading && depositClient
+                  ? "No signed proposal found, so enter the deposit amount."
+                  : ""}{" "}
+              Once its payment is recorded in full, “Deposit received” ticks on their onboarding.
+            </p>
+          )}
 
           {proposal && !invoice && (
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-brand-cyan/30 bg-brand-cyan/5 p-3 text-sm">

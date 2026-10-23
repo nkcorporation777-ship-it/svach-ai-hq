@@ -11,11 +11,17 @@ export function SequentialChecklistItem({
   isComplete,
   isLocked,
   onComplete,
+  hint,
+  actionLabel,
 }: {
   stepName: string
   isComplete: boolean
   isLocked: boolean
   onComplete: () => void
+  /** Short note shown on the right while the step is open (e.g. where clicking leads). */
+  hint?: string
+  /** Overrides the tick's accessible label when clicking does more than tick. */
+  actionLabel?: string
 }) {
   return (
     <div
@@ -34,7 +40,8 @@ export function SequentialChecklistItem({
             ? "border-status-success bg-status-success/20 text-status-success"
             : "border-border text-transparent hover:border-brand-azure",
         )}
-        aria-label={isComplete ? `${stepName} complete` : `Mark ${stepName} complete`}
+        aria-label={isComplete ? `${stepName} complete` : (actionLabel ?? `Mark ${stepName} complete`)}
+        title={!isComplete && !isLocked ? actionLabel : undefined}
       >
         {isComplete ? (
           <Check className="size-3" />
@@ -50,6 +57,7 @@ export function SequentialChecklistItem({
       >
         {stepName}
       </span>
+      {hint && !isComplete && <span className="ml-auto text-xs text-muted-foreground">{hint}</span>}
     </div>
   )
 }

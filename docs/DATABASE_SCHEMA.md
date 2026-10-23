@@ -445,6 +445,11 @@ match a caller to a record (last 10 digits / case-insensitive email).
   payments on draft or void invoices.
 - `expenses` — `spent_on`, `category`, `vendor`, `description`, `amount` (incl. GST), optional `client_id`.
 - `billing_settings` gained `invoice_from` (the "from" block on invoices) and `payment_instructions` (how clients pay).
+- Trigger `trg_deposit_paid_onboarding` (AFTER UPDATE OF status on `invoices`): when a client's `kind = 'deposit'`
+  invoice becomes `paid`, it ticks that client's "Deposit received" onboarding step (which sends the existing
+  payment-confirmation email) — only once steps 1–4 are complete, so the onboarding emails stay in order. In the UI
+  the step is no longer ticked by hand: clicking it opens the client's deposit invoice in Finance (prefilled from the
+  signed proposal if none exists yet), or ticks it directly if the deposit is already paid.
 - RLS: one Owner-only policy per table, like the rest of HQ.
 
 ## Marketing & Support (Phase 4)

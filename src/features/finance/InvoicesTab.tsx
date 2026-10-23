@@ -1,5 +1,5 @@
-import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useEffect, useState } from "react"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { Plus } from "lucide-react"
 import { GlowCard } from "@/components/shared/GlowCard"
 import { Button } from "@/components/ui/button"
@@ -19,9 +19,24 @@ type Filter = "all" | DisplayStatus
 
 export function InvoicesTab() {
   const navigate = useNavigate()
+  const [params, setParams] = useSearchParams()
   const { data: invoices, isLoading } = useInvoices()
   const [filter, setFilter] = useState<Filter>("all")
   const [newOpen, setNewOpen] = useState(false)
+  // Arriving from a client's "Deposit received" step: open their deposit invoice, prefilled.
+  const depositFor = params.get("deposit_for") ?? undefined
+  useEffect(() => {
+    if (depositFor) setNewOpen(true)
+  }, [depositFor])
+
+  function onDialogChange(open: boolean) {
+    setNewOpen(open)
+    if (!open && depositFor) {
+      const next = new URLSearchParams(params)
+      next.delete("deposit_for")
+      setParams(next, { replace: true })
+    }
+  }
 
   const rows = (invoices ?? []).filter((i) => filter === "all" || displayStatus(i) === filter)
 
@@ -94,7 +109,7 @@ export function InvoicesTab() {
         )}
       </GlowCard>
 
-      <InvoiceDialog open={newOpen} onOpenChange={setNewOpen} />
+      <InvoiceDialog open={newOpen} onOpenChange={onDialogChange} depositForClientId={depositFor} />
     </div>
   )
 }
