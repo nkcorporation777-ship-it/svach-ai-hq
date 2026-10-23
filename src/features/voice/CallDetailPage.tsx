@@ -159,7 +159,7 @@ function TranscriptView({ transcript }: { transcript: string }) {
                 "max-w-[85%] rounded-2xl px-3 py-2 text-sm",
                 isAgent
                   ? "rounded-bl-sm border border-brand-cyan/30 bg-brand-cyan/10"
-                  : "rounded-br-sm border border-white/10 bg-white/5",
+                  : "rounded-br-sm border border-foreground/10 bg-foreground/5",
               )}
             >
               <p className="mb-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">

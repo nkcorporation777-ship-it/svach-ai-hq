@@ -157,6 +157,12 @@ defaults:
 - **Fraunces licensing/hosting**: it's a Google Font (open license) — self-host it in
   the Vite app rather than linking Google's CDN at runtime, consistent with keeping
   external runtime dependencies minimal.
-- **Dark-only, by design**: the site and the confirmed palette are dark-native; HQ
-  should stay dark-only in Phase 1 rather than building a light theme nobody asked for
-  — matches `Claude.md.txt`'s "Dark First" direction.
+- **Dark first, light on request**: the site and the confirmed palette are dark-native,
+  and dark stays the default ("Dark First", `Claude.md.txt`). The Owner asked for a
+  light mode (2026-10-23): a sidebar switch sets `data-theme` on `<html>` (saved per
+  browser in localStorage, applied before first paint in `index.html`), and
+  `globals.css` overrides the tokens under `:root[data-theme="light"]`: light surfaces,
+  dark text, and one-step-darker brand/status colours so text keeps its contrast on
+  white. Glass-card colours and recessed wells are tokens (`--glass-*`, `--inset`),
+  and overlays use `foreground/N` rather than `white/N`, so new UI works in both themes
+  without extra classes. shadcn's `dark:` variant follows the switch, not the OS.

@@ -22,7 +22,7 @@ function FollowUpRowItem({ fu }: { fu: FollowUpRow }) {
   return (
     <Link
       to={`/nexus/${fu.client_id}`}
-      className="flex flex-col gap-0.5 rounded-[var(--radius-pill)] border border-white/10 bg-black/10 px-3 py-2 text-sm transition-colors hover:border-white/25"
+      className="flex flex-col gap-0.5 rounded-[var(--radius-pill)] border border-foreground/10 bg-[var(--inset)] px-3 py-2 text-sm transition-colors hover:border-foreground/25"
     >
       <span className="font-medium text-foreground">{practiceName ?? "Unknown client"}</span>
       <span className="text-xs text-muted-foreground">

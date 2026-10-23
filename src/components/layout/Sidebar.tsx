@@ -1,5 +1,7 @@
 import { NavLink } from "react-router-dom"
+import { Moon, Sun } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useTheme } from "@/lib/theme"
 import {
   primaryNav,
   globalNav,
@@ -15,7 +17,7 @@ function NavRow({ item }: { item: NavItem }) {
     return (
       <NavLink
         to={item.path}
-        className="flex items-center gap-3 rounded-[var(--radius-pill)] px-3 py-2 text-sm text-muted-foreground/70 transition-colors hover:bg-white/5"
+        className="flex items-center gap-3 rounded-[var(--radius-pill)] px-3 py-2 text-sm text-muted-foreground/70 transition-colors hover:bg-foreground/5"
       >
         <Icon className="size-4 shrink-0" />
         <span className="flex-1">{item.label}</span>
@@ -35,7 +37,7 @@ function NavRow({ item }: { item: NavItem }) {
           "flex items-center gap-3 rounded-[var(--radius-pill)] px-3 py-2 text-sm font-medium transition-colors",
           isActive
             ? "bg-primary/10 text-foreground"
-            : "text-muted-foreground hover:bg-white/5 hover:text-foreground",
+            : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground",
         )
       }
     >
@@ -46,6 +48,7 @@ function NavRow({ item }: { item: NavItem }) {
 }
 
 export function Sidebar() {
+  const { theme, toggle } = useTheme()
   return (
     <aside className="flex h-screen w-60 flex-col gap-6 border-r border-border bg-bg-secondary px-3 py-6">
       <div className="flex items-center gap-2 px-3">
@@ -74,6 +77,15 @@ export function Sidebar() {
       </nav>
 
       <div className="flex flex-col gap-0.5 border-t border-border pt-4">
+        <button
+          type="button"
+          onClick={toggle}
+          aria-label={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+          className="flex items-center gap-3 rounded-[var(--radius-pill)] px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
+        >
+          {theme === "light" ? <Moon className="size-4 shrink-0" /> : <Sun className="size-4 shrink-0" />}
+          <span>{theme === "light" ? "Dark mode" : "Light mode"}</span>
+        </button>
         {settingsNav.map((item) => (
           <NavRow key={item.path} item={item} />
         ))}

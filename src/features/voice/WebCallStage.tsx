@@ -83,7 +83,7 @@ export function WebCallStage({
       </div>
 
       {transcript.length > 0 && (
-        <div className="flex max-h-80 w-full max-w-xl flex-col gap-2 overflow-y-auto rounded-xl border border-white/10 bg-black/20 p-4">
+        <div className="flex max-h-80 w-full max-w-xl flex-col gap-2 overflow-y-auto rounded-xl border border-foreground/10 bg-[var(--inset)] p-4">
           {transcript.map((t, i) => (
             <div key={i} className={cn("flex", t.role === "agent" ? "justify-start" : "justify-end")}>
               <div
@@ -91,7 +91,7 @@ export function WebCallStage({
                   "max-w-[85%] rounded-2xl px-3 py-2 text-sm",
                   t.role === "agent"
                     ? "rounded-bl-sm border border-brand-cyan/30 bg-brand-cyan/10"
-                    : "rounded-br-sm border border-white/10 bg-white/5",
+                    : "rounded-br-sm border border-foreground/10 bg-foreground/5",
                 )}
               >
                 {t.content}

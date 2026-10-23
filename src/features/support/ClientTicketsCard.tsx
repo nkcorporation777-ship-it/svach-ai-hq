@@ -35,7 +35,7 @@ export function ClientTicketsCard({ clientId }: { clientId: string }) {
         <ul className="mt-3 flex flex-col gap-3">
           {open.map((t) => (
             <li key={t.id}>
-              <Link to={`/support/${t.id}`} className="flex flex-col gap-1 rounded-md hover:bg-white/5">
+              <Link to={`/support/${t.id}`} className="flex flex-col gap-1 rounded-md hover:bg-foreground/5">
                 <span className="flex items-center justify-between gap-2 text-sm">
                   <span className="truncate font-medium">{t.subject}</span>
                   <TicketStatusBadge status={t.status} />

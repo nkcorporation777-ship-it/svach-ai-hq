@@ -83,7 +83,7 @@ export function SupportPage() {
             >
               {t.label}
               {count > 0 && (
-                <span className="rounded-[var(--radius-pill)] bg-white/10 px-1.5 text-[11px] text-muted-foreground">
+                <span className="rounded-[var(--radius-pill)] bg-foreground/10 px-1.5 text-[11px] text-muted-foreground">
                   {count}
                 </span>
               )}

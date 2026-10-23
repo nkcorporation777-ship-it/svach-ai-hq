@@ -6,7 +6,7 @@ const TONES = {
   green: { border: "border-status-success/30", glow: "rgba(34,197,94,0.45)" },
   amber: { border: "border-status-warning/30", glow: "rgba(245,158,11,0.5)" },
   red: { border: "border-status-error/30", glow: "rgba(239,68,68,0.5)" },
-  violet: { border: "border-white/15", glow: "rgba(139,92,246,0.5)" },
+  violet: { border: "border-foreground/15", glow: "rgba(139,92,246,0.5)" },
 } as const
 
 export type GlowTone = keyof typeof TONES

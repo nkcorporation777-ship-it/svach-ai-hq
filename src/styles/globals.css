@@ -8,6 +8,9 @@
 @import "@fontsource/inter/500.css";
 @import "@fontsource/inter/600.css";
 
+/* shadcn's `dark:` utilities follow HQ's own theme switch, not the OS setting. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 /* Raw design tokens, measured directly from svach.in — DESIGN_SYSTEM.md. */
 @theme {
   --font-display: "Fraunces", ui-serif, Georgia, serif;
@@ -49,10 +52,14 @@
   --duration-card: 220ms;
 }
 
-/* Dark-only, by design (DESIGN_SYSTEM.md Open Items — no light theme in Phase 1).
+/* Dark is the default and the measured design (DESIGN_SYSTEM.md); a light theme is
+   opt-in from the sidebar switch (data-theme="light" on <html>, set by
+   src/lib/theme.ts and before first paint by the script in index.html).
    shadcn/ui's semantic variable names, mapped to our measured palette instead of
    shadcn's defaults. */
 :root {
+  color-scheme: dark;
+
   --background: var(--color-bg-primary);
   --foreground: var(--color-text-primary);
 
@@ -82,6 +89,50 @@
   --ring: var(--color-brand-azure);
 
   --radius: var(--radius-card);
+
+  /* Surfaces that used to be hard-coded rgba() in the glass recipe. */
+  --glass-bg: rgba(15, 23, 42, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-highlight: rgba(255, 255, 255, 0.06);
+  --glass-shadow: rgba(0, 0, 0, 0.9);
+  /* Recessed wells (code-like boxes, live transcripts) — darker than the card in dark mode. */
+  --inset: rgba(0, 0, 0, 0.2);
+}
+
+/* Light theme: same brand, light surfaces. Text-bearing brand/status colours are
+   one step darker than the dark-theme values so they keep readable contrast on white. */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --color-bg-primary: #f8fafc;
+  --color-bg-secondary: #ffffff;
+  --color-bg-card: #ffffff;
+  --color-bg-glass: #f1f5f9;
+
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #334155;
+  --color-text-muted: #64748b;
+  --color-text-disabled: #94a3b8;
+
+  --color-brand-cyan: #0e7490;
+  --color-brand-aqua: #0891b2;
+  --color-status-success: #047857;
+  --color-status-warning: #b45309;
+  --color-status-error: #dc2626;
+  --color-status-info: #0369a1;
+
+  --primary-foreground: #ffffff;
+  --accent-foreground: #ffffff;
+  --destructive-foreground: #ffffff;
+
+  --border: rgba(15, 23, 42, 0.1);
+  --input: rgba(15, 23, 42, 0.16);
+
+  --glass-bg: rgba(255, 255, 255, 0.82);
+  --glass-border: rgba(15, 23, 42, 0.08);
+  --glass-highlight: rgba(255, 255, 255, 0.9);
+  --glass-shadow: rgba(15, 23, 42, 0.18);
+  --inset: rgba(15, 23, 42, 0.04);
 }
 
 /* Wire shadcn's semantic tokens (and our own) into Tailwind's utility namespace —
@@ -159,13 +210,13 @@
   /* The one glassmorphism recipe, measured directly — DESIGN_SYSTEM.md "Surfaces".
      Every card/panel/modal in HQ uses this exact recipe, not an approximation. */
   .glass-card {
-    background: rgba(15, 23, 42, 0.55);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
     border-radius: var(--radius-card);
     padding: 24px;
     backdrop-filter: blur(20px);
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.06),
-      0 18px 40px -24px rgba(0, 0, 0, 0.9);
+      inset 0 1px 0 var(--glass-highlight),
+      0 18px 40px -24px var(--glass-shadow);
   }
 }

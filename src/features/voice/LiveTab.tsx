@@ -26,7 +26,7 @@ function LiveTranscript({ transcript }: { transcript: string | null }) {
                 "max-w-[85%] rounded-2xl px-3 py-2 text-sm",
                 isAgent
                   ? "rounded-bl-sm border border-brand-cyan/30 bg-brand-cyan/10"
-                  : "rounded-br-sm border border-white/10 bg-white/5",
+                  : "rounded-br-sm border border-foreground/10 bg-foreground/5",
               )}
             >
               {line.replace(/^(agent|caller|user):\s*/i, "")}
@@ -114,7 +114,7 @@ export function LiveTab() {
                 <LiveTranscript transcript={liveRow?.transcript ?? null} />
               </div>
               {liveRow?.summary && (
-                <p className="mt-4 rounded-lg border border-white/10 bg-black/20 p-3 text-sm">
+                <p className="mt-4 rounded-lg border border-foreground/10 bg-[var(--inset)] p-3 text-sm">
                   <span className="mb-1 block text-xs uppercase tracking-wide text-muted-foreground">Summary</span>
                   {liveRow.summary}
                 </p>
@@ -141,7 +141,7 @@ export function LiveTab() {
                       onClick={() => setPicked(c.id)}
                       className={cn(
                         "flex items-center justify-between gap-3 rounded-[var(--radius-pill)] border px-3 py-2 text-left text-sm transition-colors",
-                        c.id === selectedId ? "border-brand-cyan/50 bg-brand-cyan/10" : "border-white/10 hover:border-white/25",
+                        c.id === selectedId ? "border-brand-cyan/50 bg-brand-cyan/10" : "border-foreground/10 hover:border-foreground/25",
                       )}
                     >
                       <span className="truncate">{name}</span>

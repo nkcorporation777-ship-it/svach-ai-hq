@@ -129,7 +129,7 @@ export function CalendarTab({
                     type="button"
                     onClick={() => onOpenPost(p)}
                     title={p.title}
-                    className="flex items-center gap-1 truncate rounded bg-white/5 px-1 py-0.5 text-left text-[11px] hover:bg-white/10"
+                    className="flex items-center gap-1 truncate rounded bg-foreground/5 px-1 py-0.5 text-left text-[11px] hover:bg-foreground/10"
                   >
                     <span className={cn("size-1.5 shrink-0 rounded-full", STATUS_DOT[p.status as PostStatus])} />
                     <span className="hidden truncate sm:inline">{p.title}</span>

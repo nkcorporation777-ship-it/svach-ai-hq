@@ -96,7 +96,7 @@ export function SlaTab({ tickets }: { tickets: Ticket[] }) {
                 <button
                   type="button"
                   onClick={() => navigate(`/support/${t.id}`)}
-                  className="flex w-full flex-wrap items-center gap-x-4 gap-y-1 border-t border-border/60 px-6 py-3 text-left text-sm hover:bg-white/5"
+                  className="flex w-full flex-wrap items-center gap-x-4 gap-y-1 border-t border-border/60 px-6 py-3 text-left text-sm hover:bg-foreground/5"
                 >
                   <span className="font-mono text-[11px] text-muted-foreground">{t.ticket_number}</span>
                   <span className="min-w-0 flex-1 truncate font-medium">{t.subject}</span>

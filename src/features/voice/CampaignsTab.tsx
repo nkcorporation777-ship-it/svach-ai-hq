@@ -63,7 +63,7 @@ function CandidateList({ campaign, demo }: { campaign: CampaignKey; demo: boolea
       {candidates.map((c) => (
         <div
           key={c.key}
-          className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-pill)] border border-white/10 bg-black/10 px-3 py-2"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-pill)] border border-foreground/10 bg-[var(--inset)] px-3 py-2"
         >
           <div className="min-w-0">
             <Link

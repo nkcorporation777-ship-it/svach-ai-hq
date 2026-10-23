@@ -6,6 +6,14 @@
     <link rel="apple-touch-icon" href="/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Svach AI HQ</title>
+    <script>
+      // Apply the saved theme before first paint so light mode doesn't flash dark (src/lib/theme.ts).
+      var hqTheme = "dark"
+      try {
+        if (localStorage.getItem("hq-theme") === "light") hqTheme = "light"
+      } catch {}
+      document.documentElement.dataset.theme = hqTheme
+    </script>
   </head>
   <body>
     <div id="root"></div>

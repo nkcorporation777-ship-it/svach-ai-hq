@@ -324,7 +324,7 @@ export function TicketDetailPage() {
                         "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full",
                         u.kind === "reply" && "bg-brand-cyan/15 text-brand-cyan",
                         u.kind === "note" && "bg-status-warning/15 text-status-warning",
-                        u.kind === "status_change" && "bg-white/5 text-muted-foreground",
+                        u.kind === "status_change" && "bg-foreground/5 text-muted-foreground",
                       )}
                     >
                       {u.kind === "reply" ? (
