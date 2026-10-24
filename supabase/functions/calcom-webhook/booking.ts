@@ -57,6 +57,80 @@ async function findContact(
   return null
 }
 
+/** Finds the one unmatched voice call that was in progress when a booking was
+ * made and links it to the booking's contact. Ambiguous (several live calls) or
+ * no candidate → nothing is linked. If the call was already analysed, its
+ * summary is put on the contact's timeline here, since the call webhook that
+ * normally does it has already been and gone. */
+async function linkLiveCall(
+  admin: Admin,
+  contact: { type: "lead" | "client"; id: string },
+  bookedAt: number,
+  demo: boolean,
+): Promise<{ id: string; is_demo: boolean } | null> {
+  const { data: candidates } = await admin
+    .from("voice_calls")
+    .select("id, is_demo, summary, activity_id, ended_at, duration_ms, direction, call_type, sentiment, call_successful, retell_call_id, voice_agents!inner(tracked)")
+    .is("lead_id", null)
+    .is("client_id", null)
+    .eq("is_demo", demo)
+    .eq("voice_agents.tracked", true)
+    .gte("started_at", new Date(bookedAt - 60 * 60 * 1000).toISOString())
+    .lte("started_at", new Date(bookedAt + 60 * 1000).toISOString())
+    .or(`ended_at.is.null,ended_at.gte.${new Date(bookedAt - 2 * 60 * 1000).toISOString()}`)
+    .limit(2)
+  if (!candidates || candidates.length !== 1) return null
+  const call = candidates[0]
+
+  const link = contact.type === "client" ? { client_id: contact.id } : { lead_id: contact.id }
+  const { data: claimed } = await admin
+    .from("voice_calls")
+    .update(link)
+    .eq("id", call.id)
+    .is("lead_id", null)
+    .is("client_id", null)
+    .select("id")
+  if (!claimed?.length) return null
+
+  if (call.summary && !call.activity_id) {
+    const { data: activity } = await admin
+      .from("activities")
+      .insert({
+        entity_type: contact.type,
+        entity_id: contact.id,
+        type: "call",
+        content: call.summary,
+        created_by: null,
+        created_at: call.ended_at ?? new Date().toISOString(),
+        metadata: {
+          source: "voice_agent",
+          retell_call_id: call.retell_call_id,
+          direction: call.direction,
+          call_type: call.call_type,
+          duration_ms: call.duration_ms,
+          sentiment: call.sentiment,
+          call_successful: call.call_successful,
+          voice_call_id: call.id,
+          linked_by: "booking",
+        },
+      })
+      .select("id")
+      .single()
+    if (activity) {
+      await admin.from("voice_calls").update({ activity_id: activity.id }).eq("id", call.id).is("activity_id", null)
+    }
+  }
+  await admin.from("audit_logs").insert({
+    actor_type: "system",
+    actor_id: null,
+    action: "voice.call_linked_by_booking",
+    entity_type: contact.type,
+    entity_id: contact.id,
+    metadata: { voice_call_id: call.id, retell_call_id: call.retell_call_id },
+  })
+  return { id: call.id, is_demo: !!call.is_demo }
+}
+
 // Cal.com booking-form answers arrive as { <field id>: { label, value } }. The
 // field ids are whatever was typed in the event type (e.g. "Company-Name"), so
 // match loosely instead of by one exact key.
@@ -284,6 +358,19 @@ export async function processBooking(
     if (call) {
       callId = call.id
       callIsDemo = !!call.is_demo
+    }
+  }
+
+  // The agent booked during a web call it couldn't match to anyone (web calls
+  // carry no phone number, and the caller's email only arrives with the
+  // post-call analysis). If exactly one unmatched call from a tracked agent was
+  // live when this booking was made, it's the call that made it: link it to the
+  // booking's contact so its summary lands on that record's timeline.
+  if (!callId && contact) {
+    const linked = await linkLiveCall(admin, contact, createdAt, demoFlag)
+    if (linked) {
+      callId = linked.id
+      callIsDemo = !!linked.is_demo
     }
   }
 
