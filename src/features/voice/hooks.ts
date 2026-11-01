@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase/client"
 import { logAudit } from "@/lib/audit"
 import type { TablesUpdate } from "@/types/database"
 import { useDemoMode } from "./demoMode"
+import { VOICE_MOCK, assertNotMock, loadMock } from "./mock" // VOICE_MOCK
 
 export type Audience = "internal" | "demo" | "client_patients"
 
@@ -26,6 +27,7 @@ export function useVoiceAgents() {
   return useQuery({
     queryKey: ["voice", "agents", demo],
     queryFn: async () => {
+      if (VOICE_MOCK) return (await loadMock()).agents() as never // VOICE_MOCK
       // Only agents the Owner added (tracked) — HQ ignores every other Retell agent.
       let q = supabase
         .from("voice_agents")
@@ -45,6 +47,7 @@ export function useVoiceCalls(filters: CallFilters = {}) {
   return useQuery({
     queryKey: ["voice", "calls", demo, filters],
     queryFn: async () => {
+      if (VOICE_MOCK) return (await loadMock()).calls(filters) as never // VOICE_MOCK
       let q = supabase
         .from("voice_calls")
         .select(CALL_SELECT)
@@ -66,6 +69,7 @@ export function useVoiceCall(id: string | undefined) {
   return useQuery({
     queryKey: ["voice", "call", id],
     queryFn: async () => {
+      if (VOICE_MOCK) return (await loadMock()).call(id) as never // VOICE_MOCK
       const { data, error } = await supabase
         .from("voice_calls")
         .select(CALL_SELECT)
@@ -84,6 +88,7 @@ export function useVoiceUsage(days: number) {
   return useQuery({
     queryKey: ["voice", "usage", demo, days],
     queryFn: async () => {
+      if (VOICE_MOCK) return (await loadMock()).usage(days) as never // VOICE_MOCK
       const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
       const { data, error } = await supabase
         .from("voice_usage_daily")
@@ -124,6 +129,7 @@ export function useVoiceStatus() {
   return useQuery({
     queryKey: ["voice", "status"],
     queryFn: async () => {
+      if (VOICE_MOCK) return (await loadMock()).status() as never // VOICE_MOCK
       const [{ data: call }, { data: agent }] = await Promise.all([
         supabase
           .from("voice_calls")
@@ -151,6 +157,7 @@ export function useNeedsReviewCount() {
   return useQuery({
     queryKey: ["voice", "needs-review-count", demo],
     queryFn: async () => {
+      if (VOICE_MOCK) return (await loadMock()).needsReviewCount() as never // VOICE_MOCK
       const { count, error } = await supabase
         .from("voice_calls")
         .select("id", { count: "exact", head: true })
@@ -168,6 +175,7 @@ export function useLeadsLite(demo?: boolean) {
   return useQuery({
     queryKey: ["voice", "leads-lite", demo],
     queryFn: async () => {
+      if (VOICE_MOCK) return (await loadMock()).leadsLite() as never // VOICE_MOCK
       const q = supabase
         .from("leads")
         .select("id, practice_name, contact_name")
@@ -188,6 +196,7 @@ export function useClientsLite(demo?: boolean) {
   return useQuery({
     queryKey: ["voice", "clients-lite", demo],
     queryFn: async () => {
+      if (VOICE_MOCK) return (await loadMock()).clientsLite() as never // VOICE_MOCK
       const q = supabase
         .from("clients")
         .select("id, practice_name")
@@ -214,6 +223,7 @@ export function useSyncRetell() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async () => {
+      assertNotMock() // VOICE_MOCK
       const { data, error } = await supabase.functions.invoke("retell-sync", { body: { days: 30 } })
       if (error) throw error
       if (data?.error) throw new Error(data.error)
@@ -234,6 +244,7 @@ export function useAddRetellAgent() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (agentId: string) => {
+      assertNotMock() // VOICE_MOCK
       const { data, error } = await supabase.functions.invoke("retell-sync", {
         body: { action: "add_agent", agent_id: agentId.trim() },
       })
@@ -256,6 +267,7 @@ export function useStopTrackingAgent() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (id: string) => {
+      assertNotMock() // VOICE_MOCK
       const { error } = await supabase.from("voice_agents").update({ tracked: false }).eq("id", id)
       if (error) throw error
       await logAudit({ action: "voice.agent_untracked", entityType: "voice_agent", entityId: id })
@@ -276,6 +288,7 @@ export function useResolveReview() {
       callId: string
       target?: { type: "lead" | "client"; id: string }
     }) => {
+      assertNotMock() // VOICE_MOCK
       if (!target) {
         const { error } = await supabase
           .from("voice_calls")
@@ -352,6 +365,7 @@ export function useUpdateVoiceAgent() {
       audience?: Audience
       clientId?: string | null
     }) => {
+      assertNotMock() // VOICE_MOCK
       const patch: { audience?: Audience; client_id?: string | null } = {}
       if (audience !== undefined) patch.audience = audience
       if (clientId !== undefined) patch.client_id = clientId
@@ -367,6 +381,7 @@ export function useDemoData() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (action: "seed" | "reset") => {
+      assertNotMock() // VOICE_MOCK
       const { data, error } = await supabase.functions.invoke("voice-demo", { body: { action } })
       if (error) throw error
       if (data?.error) throw new Error(data.error)
@@ -391,6 +406,7 @@ export function useCampaigns() {
   return useQuery({
     queryKey: ["voice", "campaigns"],
     queryFn: async () => {
+      if (VOICE_MOCK) return (await loadMock()).campaigns() as never // VOICE_MOCK
       const { data, error } = await supabase.from("voice_campaigns").select("*, voice_agents(id, name)").order("key")
       if (error) throw error
       return data
@@ -413,6 +429,7 @@ export function useUpdateCampaign() {
         daily_cap?: number
       }
     }) => {
+      assertNotMock() // VOICE_MOCK
       const { error } = await supabase
         .from("voice_campaigns")
         .update({ ...patch, updated_at: new Date().toISOString() })
@@ -441,6 +458,7 @@ export function useCampaignCandidates(campaign: CampaignKey) {
   return useQuery({
     queryKey: ["voice", "candidates", campaign, demo],
     queryFn: async (): Promise<Candidate[]> => {
+      if (VOICE_MOCK) return (await loadMock()).candidates(campaign) as never // VOICE_MOCK
       const demoFilter = <T extends { filter: (c: string, o: string, v: string) => T; or: (f: string) => T }>(q: T) =>
         demo ? q.filter("metadata->>is_demo", "eq", "true") : q.or("metadata->>is_demo.is.null,metadata->>is_demo.neq.true")
 
@@ -577,6 +595,7 @@ export function useCallNow() {
   const demo = useDemoMode()
   return useMutation({
     mutationFn: async ({ campaign, candidate }: { campaign: CampaignKey; candidate: Candidate }) => {
+      assertNotMock() // VOICE_MOCK
       const ids =
         candidate.entityType === "client" ? { client_id: candidate.entityId } : { lead_id: candidate.entityId }
       const { data, error } = demo
@@ -603,6 +622,7 @@ export type InboundScenario = "inbound_booking" | "inbound_colleague" | "inbound
 export function useSimulateInbound() {
   return useMutation({
     mutationFn: async (scenario: InboundScenario = "inbound_booking") => {
+      assertNotMock() // VOICE_MOCK
       const { data, error } = await supabase.functions.invoke("voice-demo", {
         body: { action: "simulate", scenario },
       })
@@ -619,6 +639,7 @@ export function useDemoLink() {
   return useQuery({
     queryKey: ["voice", "demo-link"],
     queryFn: async () => {
+      if (VOICE_MOCK) return (await loadMock()).demoLink() as never // VOICE_MOCK
       const { data, error } = await supabase
         .from("voice_demo_links")
         .select("*, voice_agents(id, name)")
@@ -642,6 +663,7 @@ export function useUpsertDemoLink() {
       perIpDailyCap?: number
       rotate?: boolean
     }) => {
+      assertNotMock() // VOICE_MOCK
       const patch: TablesUpdate<"voice_demo_links"> = {}
       if (input.agentId !== undefined) patch.agent_id = input.agentId
       if (input.enabled !== undefined) patch.enabled = input.enabled
@@ -675,6 +697,7 @@ export async function requestWebCall(body: {
   lead_id?: string
   client_id?: string
 }): Promise<WebCallToken> {
+  assertNotMock() // VOICE_MOCK
   const { data, error } = await supabase.functions.invoke("voice-web-call", { body })
   if (error) throw error
   if (data?.error) throw new Error(data.error)
@@ -687,6 +710,7 @@ export function useCallWorkflow(callId: string | undefined) {
   return useQuery({
     queryKey: ["voice", "workflow", callId],
     queryFn: async () => {
+      if (VOICE_MOCK) return (await loadMock()).workflow(callId) as never // VOICE_MOCK
       const [{ data: call, error }, { data: appts }] = await Promise.all([
         supabase.from("voice_calls").select(CALL_SELECT).eq("id", callId!).single(),
         supabase
@@ -712,6 +736,7 @@ export function useLiveCalls() {
   const demo = useDemoMode()
   const queryClient = useQueryClient()
   useEffect(() => {
+    if (VOICE_MOCK) return // VOICE_MOCK
     const channel = supabase
       .channel(`voice-live-${demo ? "demo" : "real"}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "voice_calls" }, () => {
@@ -733,6 +758,7 @@ export function useLiveCalls() {
   return useQuery({
     queryKey: ["voice", "live", demo],
     queryFn: async () => {
+      if (VOICE_MOCK) return (await loadMock()).liveCalls() as never // VOICE_MOCK
       const { data, error } = await supabase
         .from("voice_calls")
         .select(CALL_SELECT)
@@ -754,6 +780,7 @@ export function useAppointments() {
   return useQuery({
     queryKey: ["voice", "appointments", demo],
     queryFn: async () => {
+      if (VOICE_MOCK) return (await loadMock()).appointments() as never // VOICE_MOCK
       const { data, error } = await supabase
         .from("appointments")
         .select(APPOINTMENT_SELECT)
@@ -771,6 +798,7 @@ export function useEntityAppointments(entityType: "lead" | "client", entityId: s
   return useQuery({
     queryKey: ["voice", "appointments", entityType, entityId],
     queryFn: async () => {
+      if (VOICE_MOCK) return (await loadMock()).entityAppointments(entityType, entityId) as never // VOICE_MOCK
       const col = entityType === "lead" ? "lead_id" : "client_id"
       const { data, error } = await supabase
         .from("appointments")

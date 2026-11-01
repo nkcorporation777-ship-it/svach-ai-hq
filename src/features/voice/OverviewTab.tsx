@@ -65,13 +65,16 @@ export function OverviewTab() {
         ) : (
           <div className="mt-6 flex h-40 items-end gap-2">
             {daily.map((d) => (
-              <div key={d.day} className="flex flex-1 flex-col items-center gap-1">
+              <div key={d.day} className="flex h-full flex-1 flex-col items-center gap-1">
                 <span className="text-xs text-muted-foreground">{d.calls}</span>
-                <div
-                  className="w-full rounded-t-md bg-gradient-to-t from-brand-cyan/30 to-brand-cyan"
-                  style={{ height: `${Math.max(6, (d.calls / maxCalls) * 100)}%` }}
-                  title={`${d.day}: ${d.calls} calls, ${Math.round(d.minutes)} min`}
-                />
+                {/* The bar's % height needs a parent with a definite height. */}
+                <div className="flex min-h-0 w-full flex-1 items-end">
+                  <div
+                    className="w-full rounded-t-md bg-gradient-to-t from-brand-cyan/30 to-brand-cyan"
+                    style={{ height: `${Math.max(6, (d.calls / maxCalls) * 100)}%` }}
+                    title={`${d.day}: ${d.calls} calls, ${Math.round(d.minutes)} min`}
+                  />
+                </div>
                 <span className="font-mono text-[10px] text-muted-foreground">{d.day.slice(5)}</span>
               </div>
             ))}
