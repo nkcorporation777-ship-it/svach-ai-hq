@@ -167,5 +167,13 @@
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.06),
       0 18px 40px -24px rgba(0, 0, 0, 0.9);
+    /* Text never crosses a card: cards can shrink inside grids and flex rows,
+       and long names or URLs wrap instead of spilling out. */
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  /* Tables keep whole words; a wide one scrolls inside its card. */
+  .glass-card table {
+    overflow-wrap: normal;
   }
 }

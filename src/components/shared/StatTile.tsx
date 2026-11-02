@@ -9,7 +9,7 @@ import { Card } from "./Card"
 export function StatTile({ value, label }: { value: ReactNode; label: string }) {
   return (
     <Card>
-      <p className="font-display text-4xl font-semibold text-foreground">{value}</p>
+      <p className="font-display text-3xl font-semibold text-foreground lg:text-2xl xl:text-3xl 2xl:text-4xl">{value}</p>
       <p className="mt-1 text-sm text-muted-foreground">{label}</p>
     </Card>
   )
