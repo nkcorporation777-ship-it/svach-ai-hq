@@ -1,4 +1,6 @@
 import { Link } from "react-router-dom"
+import { useQuery } from "@tanstack/react-query" // VOICE_MOCK
+import { VOICE_MOCK, loadMock } from "@/features/voice/mock" // VOICE_MOCK
 import { CheckCircle2, User, Bot, Cog, AlertTriangle } from "lucide-react"
 import { Card } from "@/components/shared/Card"
 import { StatTile } from "@/components/shared/StatTile"
@@ -39,9 +41,13 @@ export function DashboardPage() {
   const { data: healthEvents, isLoading: healthLoading } = useSystemHealthEvents()
   const { data: recommendations, isLoading: recsLoading } = useOoaRecommendations()
   const { data: activity, isLoading: activityLoading } = useAgentActivity()
-  const { data: leads } = useLeads()
-  const { data: clients } = useClients()
-  const { data: followUps } = useAllFollowUps()
+  const { data: mockStats } = useQuery({ queryKey: ["dashboard-mock"], enabled: VOICE_MOCK, queryFn: async () => (await loadMock()).dashboardStats() }) // VOICE_MOCK
+  const { data: realLeads } = useLeads()
+  const { data: realClients } = useClients()
+  const { data: realFollowUps } = useAllFollowUps()
+  const leads = VOICE_MOCK ? (mockStats?.leads as never) : realLeads // VOICE_MOCK
+  const clients = VOICE_MOCK ? (mockStats?.clients as never) : realClients // VOICE_MOCK
+  const followUps = VOICE_MOCK ? (mockStats?.followUps as never) : realFollowUps // VOICE_MOCK
   const approve = useApproveRecommendation()
   const dismiss = useDismissRecommendation()
 

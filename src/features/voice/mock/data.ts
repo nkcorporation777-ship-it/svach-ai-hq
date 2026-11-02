@@ -767,3 +767,100 @@ export const appointments = () => APPOINTMENTS
 
 export const entityAppointments = (entityType: "lead" | "client", entityId: string | undefined) =>
   APPOINTMENTS.filter((a) => (entityType === "lead" ? a.lead_id : a.client_id) === entityId)
+
+// ── Dashboard ───────────────────────────────────────────────────────────────
+// Same clinics as the Voice pages. No overdue follow-ups, late tickets or failed
+// posts: those banners link to Nexus/Support/Marketing, which show real data.
+
+const LEAD_VALUES = [4500, 6000, 3500, 7500, 5000, 9000, 4000, 12000, 5500, 3000, 8000, 6500]
+
+export function dashboardStats() {
+  const ticket = (hoursOld: number, responded: boolean) => ({
+    status: responded ? "in_progress" : "open",
+    opened_at: iso(NOW - hoursOld * HOUR),
+    first_response_due_at: iso(NOW + (responded ? -hoursOld + 4 : 3) * HOUR),
+    first_responded_at: responded ? iso(NOW - (hoursOld - 1) * HOUR) : null,
+    resolution_due_at: iso(NOW + 30 * HOUR),
+    resolved_at: null,
+  })
+  return {
+    leads: leadClinics.map((c, i) => ({
+      stage: c.stage === "contacted" && i % 2 === 0 ? "discovery_booked" : c.stage,
+      value: LEAD_VALUES[i % LEAD_VALUES.length],
+    })),
+    clients: clientClinics.map((_, i) => ({ isFlagged: i >= 2 && i < 5 })),
+    followUps: [],
+    tickets: [ticket(1, false), ticket(3, true), ticket(6, true), ticket(9, true)],
+    posts: [],
+  }
+}
+
+export const healthEvents = () =>
+  (
+    [
+      ["voice", "voice.call_analyzed", 6],
+      ["n8n", "workflow_succeeded", 42],
+      ["calcom", "appointment.booked", 75],
+      ["reminders", "appointment.reminder_sent", 130],
+      ["voice", "voice.call_analyzed", 190],
+      ["n8n", "workflow_succeeded", 260],
+      ["reminders", "appointment.reminder_sent", 340],
+      ["calcom", "appointment.rescheduled", 420],
+    ] as const
+  ).map(([source, event_type, minsAgo], i) => ({
+    id: `mock-health-${i}`,
+    source,
+    event_type,
+    severity: "info",
+    detail: {},
+    created_at: iso(NOW - minsAgo * MIN),
+  }))
+
+export const latestN8nRun = () => ({
+  event_type: "workflow_succeeded",
+  detail: { workflow: "New lead alert" },
+  created_at: iso(NOW - 42 * MIN),
+})
+
+export function recommendations() {
+  const a = leadClinics.find((l) => l.stage === "proposal_sent")!
+  const [b, c] = [clientClinics[3], leadClinics[5]]
+  return [
+    {
+      id: "mock-rec-1",
+      title: `Follow up with ${a.practice}`,
+      description: `${a.contact} has had a proposal for 6 days with no reply. A follow-up call is due.`,
+    },
+    {
+      id: "mock-rec-2",
+      title: `Check in with ${b.practice}`,
+      description: `No contact for 14 days. They asked about the review-request add-on on their last call.`,
+    },
+    {
+      id: "mock-rec-3",
+      title: `Hot lead: ${c.practice}`,
+      description: `${c.contact} booked a strategy session after a 4-minute call. Send the prep notes before it starts.`,
+    },
+  ].map((r) => ({ ...r, status: "pending", created_at: iso(NOW - 2 * HOUR) }))
+}
+
+export const agentActivity = () =>
+  (
+    [
+      ["agent", "voice.call_logged", 6],
+      ["agent", "lead.stage_changed", 7],
+      ["system", "appointment.booked", 75],
+      ["agent", "voice.call_logged", 78],
+      ["agent", "lead.created", 79],
+      ["system", "appointment.reminder_sent", 130],
+      ["agent", "voice.call_logged", 190],
+      ["user", "proposal.sent", 240],
+      ["system", "appointment.rescheduled", 420],
+      ["agent", "voice.call_logged", 455],
+    ] as const
+  ).map(([actor_type, action, minsAgo], i) => ({
+    id: `mock-activity-${i}`,
+    actor_type,
+    action,
+    created_at: iso(NOW - minsAgo * MIN),
+  }))

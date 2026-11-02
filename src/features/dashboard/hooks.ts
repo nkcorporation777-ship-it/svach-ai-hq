@@ -2,11 +2,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { supabase } from "@/lib/supabase/client"
 import { logAudit } from "@/lib/audit"
 import { getFunctionErrorMessage } from "@/lib/functionsError"
+import { VOICE_MOCK, assertNotMock, loadMock } from "@/features/voice/mock" // VOICE_MOCK
 
 export function useSystemHealthEvents() {
   return useQuery({
     queryKey: ["systemHealthEvents"],
     queryFn: async () => {
+      if (VOICE_MOCK) return (await loadMock()).healthEvents() as never // VOICE_MOCK
       const { data, error } = await supabase
         .from("ooa_system_health_events")
         .select("*")
@@ -22,6 +24,7 @@ export function useOoaRecommendations() {
   return useQuery({
     queryKey: ["ooaRecommendations"],
     queryFn: async () => {
+      if (VOICE_MOCK) return (await loadMock()).recommendations() as never // VOICE_MOCK
       const { data, error } = await supabase
         .from("ooa_recommendations")
         .select("*")
@@ -37,6 +40,7 @@ export function useAgentActivity() {
   return useQuery({
     queryKey: ["agentActivity"],
     queryFn: async () => {
+      if (VOICE_MOCK) return (await loadMock()).agentActivity() as never // VOICE_MOCK
       const { data, error } = await supabase
         .from("audit_logs")
         .select("*")
@@ -58,6 +62,7 @@ export function useApproveRecommendation() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (id: string) => {
+      assertNotMock() // VOICE_MOCK
       const { data, error } = await supabase.functions.invoke("ooa-execute-action", {
         body: { id },
       })
@@ -75,6 +80,7 @@ export function useDismissRecommendation() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (id: string) => {
+      assertNotMock() // VOICE_MOCK
       const {
         data: { user },
       } = await supabase.auth.getUser()
